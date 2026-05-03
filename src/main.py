@@ -1,54 +1,50 @@
 import pygame
 import sys
-from engine.renderer import draw_room, TILE_SIZE
+from engine.constants import (
+    WINDOW_WIDTH, WINDOW_HEIGHT, FPS, TITLE,
+    SIDEBAR_WIDTH, ROOM_WIDTH, ROOM_COLS, ROOM_ROWS
+)
+from engine.renderer import draw_room, draw_sidebar
 from entities.player import Player
 from world.tile import WALL, FLOOR
-from world.room import Room, Exit
-
-# Window settings
-WINDOW_WIDTH  = 1280
-WINDOW_HEIGHT = 720
-FPS           = 60
-TITLE         = "The Hollow Descent"
+from world.room import Room
 
 def build_test_room():
     """
-    Builds a hardcoded test Room using proper Tile objects.
-    This will be replaced by the dungeon generator in a later step.
-    W = wall tile, F = floor tile.
+    Builds a test room sized to fill the full room viewport.
+    Walls on edges, floor in the interior.
     """
     W = WALL
     F = FLOOR
 
-    # 10 columns wide, 8 rows tall
-    tile_grid = [
-        [W, W, W, W, W, W, W, W, W, W],
-        [W, F, F, F, F, F, F, F, F, W],
-        [W, F, F, F, F, F, F, F, F, W],
-        [W, F, F, F, F, F, F, F, F, W],
-        [W, F, F, F, F, F, F, F, F, W],
-        [W, F, F, F, F, F, F, F, F, W],
-        [W, F, F, F, F, F, F, F, F, W],
-        [W, W, W, W, W, W, W, W, W, W],
-    ]
+    tile_grid = []
+    for row in range(ROOM_ROWS):
+        tile_row = []
+        for col in range(ROOM_COLS):
+            if row == 0 or row == ROOM_ROWS - 1:
+                tile_row.append(W)
+            elif col == 0 or col == ROOM_COLS - 1:
+                tile_row.append(W)
+            else:
+                tile_row.append(F)
+        tile_grid.append(tile_row)
 
     return Room(
         id          = "room_001",
         name        = "The Entry Hollow",
         description = "Cold stone surrounds you. The door behind you is gone.",
         room_type   = "standard",
-        width       = 10,
-        height      = 8,
+        width       = ROOM_COLS,
+        height      = ROOM_ROWS,
         tiles       = tile_grid,
-        exits       = [],       # no exits yet — added in later step
+        exits       = [],
         visited     = True,
         first_visit = True,
     )
 
 def handle_input(event, player, room):
     """
-    Maps WASD and arrow key presses to player movement.
-    Passes the Room object so move() can check tile walkability.
+    Maps WASD and arrow keys to player movement.
     """
     if event.type == pygame.KEYDOWN:
         if event.key in (pygame.K_w, pygame.K_UP):
@@ -68,10 +64,7 @@ def main():
 
     clock = pygame.time.Clock()
 
-    # Build the test room
-    room = build_test_room()
-
-    # Place player at tile (1, 1) — first walkable floor tile
+    room   = build_test_room()
     player = Player(start_col=1, start_row=1)
 
     while True:
@@ -79,14 +72,12 @@ def main():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
             handle_input(event, player, room)
 
         screen.fill((0, 0, 0))
-
-        # Draw room then player on top
         draw_room(screen, room)
-        player.draw(screen, TILE_SIZE)
+        player.draw(screen)
+        draw_sidebar(screen, WINDOW_WIDTH, ROOM_WIDTH, SIDEBAR_WIDTH, WINDOW_HEIGHT)
 
         pygame.display.flip()
         clock.tick(FPS)
