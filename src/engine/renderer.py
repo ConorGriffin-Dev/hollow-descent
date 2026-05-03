@@ -24,16 +24,53 @@ TILE_COLOURS = {
 def draw_room(screen, room):
     """
     Draws the full tile grid of a Room object.
-    Iterates every tile, looks up its colour, draws a rectangle.
+    Renders exit positions as visible openings in the walls
+    so the player can see where passages lead.
     """
-    for row_index, row in enumerate(room.tiles):
-        for col_index, tile in enumerate(row):
-            colour  = TILE_COLOURS.get(tile.type, (0, 0, 0))
+    # Build a set of exit tile positions for quick lookup
+    exit_positions = set()
+    for exit in room.exits:
+        col, row = get_exit_tile_position(room, exit.direction)
+        # Mark the exit tile and one tile either side for a wider opening
+        exit_positions.add((col, row))
+        if exit.direction in ("north", "south"):
+            exit_positions.add((col - 1, row))
+            exit_positions.add((col + 1, row))
+        else:
+            exit_positions.add((col, row - 1))
+            exit_positions.add((col, row + 1))
+
+    for row_index, row_tiles in enumerate(room.tiles):
+        for col_index, tile in enumerate(row_tiles):
+
+            # If this tile is an exit position render it as a passage
+            if (col_index, row_index) in exit_positions:
+                colour = (55, 45, 35)   # darker gap colour
+            else:
+                colour = TILE_COLOURS.get(tile.type, (0, 0, 0))
+
             pixel_x = col_index * TILE_SIZE
             pixel_y = row_index * TILE_SIZE
             rect    = pygame.Rect(pixel_x, pixel_y, TILE_SIZE, TILE_SIZE)
             pygame.draw.rect(screen, colour, rect)
-            pygame.draw.rect(screen, (20, 20, 20), rect, 1)
+            pygame.draw.rect(screen, (18, 15, 12), rect, 1)
+
+def get_exit_tile_position(room, direction):
+    """
+    Returns the (col, row) tile position of an exit
+    based on which wall it sits on.
+    Exits are centred on their respective walls.
+    """
+    centre_col = room.width  // 2
+    centre_row = room.height // 2
+
+    positions = {
+        "north": (centre_col, 0),
+        "south": (centre_col, room.height - 1),
+        "east":  (room.width - 1, centre_row),
+        "west":  (0, centre_row),
+    }
+    return positions[direction]
 
 def draw_sidebar(screen, font, font_small, player_data):
     """
