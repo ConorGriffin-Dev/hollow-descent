@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+venv/
+env/
+.env
+
+# Pygame / OS
+*.DS_Store
+Thumbs.db
+
+# Saves
+saves/*.json
+
+# Assets (added manually, not committed)
+assets/tilesets/*
+assets/sprites/*
+assets/fonts/*
+
+# Pytest
+.pytest_cache/
+*.pytest_cache
+
+# IDE
+.vscode/
+.idea/
+
+# Distribution
+dist/
+build/
+*.spec
