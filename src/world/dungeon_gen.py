@@ -17,70 +17,73 @@ def generate_floor(floor_number, seed):
     Generates a complete Floor object for the given floor number.
     Uses the seed for reproducibility — same seed = same floor.
     Each floor is a graph of connected Room objects.
-
-    Steps:
-      1. Decide room count for this floor
-      2. Generate a guaranteed path from start to staircase
-      3. Branch off the main path with optional rooms
-      4. Assign room types
-      5. Place the staircase in the final room
-      6. Return the complete Floor object
     """
-    rng = random.Random(seed + floor_number)
-    # Separate RNG per floor so floor 1 and floor 2
-    # don't share the same sequence
-
+    rng        = random.Random(seed + floor_number)
     room_count = get_room_count(floor_number, rng)
     rooms      = {}
 
-    # ── Step 1: Build main path ───────────────────────────────────
-    # The main path is a guaranteed chain from start to staircase.
-    # This ensures every floor is always completable.
+    # ── Step 1: Build main path with varied directions ────────────
+    # The main path walks in random directions instead of always south.
+    # This creates organic L, Z, and winding shapes.
     main_path_length = max(4, room_count // 2)
     main_path_ids    = []
 
-    for i in range(main_path_length):
-        room_id = f"room_{len(rooms):03d}"
-        room    = build_room(room_id, floor_number, rng)
-        rooms[room_id] = room
-        main_path_ids.append(room_id)
+    # Start room
+    first_id = f"room_{len(rooms):03d}"
+    rooms[first_id] = build_room(first_id, floor_number, rng)
+    main_path_ids.append(first_id)
 
-    # Connect main path rooms in sequence north→south
-    for i in range(len(main_path_ids) - 1):
-        connect_rooms(
-            rooms[main_path_ids[i]],
-            rooms[main_path_ids[i + 1]],
-            "south"
-        )
+    for i in range(main_path_length - 1):
+        parent   = rooms[main_path_ids[-1]]
+        available = get_available_directions(parent)
+
+        if not available:
+            break
+
+        # Bias toward continuing in the same direction as last step
+        # but allow turns — creates more natural winding paths
+        if len(main_path_ids) > 1 and rng.random() < 0.6:
+            last_exit = main_path_ids[-1]
+            last_room = rooms[main_path_ids[-2]]
+            last_dir  = next(
+                (e.direction for e in last_room.exits
+                 if e.leads_to == last_exit),
+                None
+            )
+            if last_dir and last_dir in available:
+                direction = last_dir
+            else:
+                direction = rng.choice(available)
+        else:
+            direction = rng.choice(available)
+
+        room_id          = f"room_{len(rooms):03d}"
+        rooms[room_id]   = build_room(room_id, floor_number, rng)
+        main_path_ids.append(room_id)
+        connect_rooms(rooms[main_path_ids[-2]], rooms[room_id], direction)
 
     # ── Step 2: Branch off the main path ─────────────────────────
-    # Add remaining rooms as branches off the main path.
-    # Branches create dead ends, loops, and optional content.
-    remaining = room_count - main_path_length
+    remaining = room_count - len(main_path_ids)
 
     for _ in range(remaining):
-        # Pick a random main path room to branch from
-        parent_id  = rng.choice(main_path_ids)
-        parent     = rooms[parent_id]
+        # Pick a random room from all existing rooms to branch from
+        # not just the main path — creates denser graphs
+        parent_id = rng.choice(list(rooms.keys()))
+        parent    = rooms[parent_id]
+        available = get_available_directions(parent)
 
-        # Find a direction the parent doesn't already have an exit
-        available  = get_available_directions(parent)
         if not available:
             continue
 
-        direction  = rng.choice(available)
-        room_id    = f"room_{len(rooms):03d}"
-        room       = build_room(room_id, floor_number, rng)
-        rooms[room_id] = room
-
-        connect_rooms(parent, room, direction)
+        direction      = rng.choice(available)
+        room_id        = f"room_{len(rooms):03d}"
+        rooms[room_id] = build_room(room_id, floor_number, rng)
+        connect_rooms(parent, rooms[room_id], direction)
 
     # ── Step 3: Assign room types ─────────────────────────────────
     assign_room_types(rooms, main_path_ids, rng)
 
     # ── Step 4: Place staircases ──────────────────────────────────
-    # Start room gets the ascending staircase (back up)
-    # Final main path room gets the descending staircase
     start_id     = main_path_ids[0]
     staircase_id = main_path_ids[-1]
 
@@ -88,14 +91,13 @@ def generate_floor(floor_number, seed):
     place_staircase(rooms[staircase_id], "staircase_down")
 
     # ── Step 5: Build placeholder gate requirement ────────────────
-    # Real gate content added in Phase 3
     gate = GateRequirement(
         floor_number = floor_number,
         type         = "carry",
         description  = "The way down is sealed.",
         inscription  = "Prove your worth.",
         condition    = {},
-        satisfied    = True   # temporarily open so we can move between floors
+        satisfied    = True
     )
 
     return Floor(

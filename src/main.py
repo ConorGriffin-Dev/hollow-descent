@@ -192,7 +192,12 @@ def main():
         # Draw in order — room, player, UI on top
         draw_room(screen, current_room)
         game_state.player.draw(screen)
-        draw_sidebar(screen, font, font_small, game_state.player.to_sidebar_dict())
+        draw_sidebar(
+            screen, font, font_small,
+            game_state.player.to_sidebar_dict(),
+            game_state.current_floor,
+            game_state.current_floor.player_current_room
+        )
         draw_message_log(
             screen, font, font_small,
             game_state.messages,
