@@ -2,6 +2,7 @@ import random
 from world.tile import WALL, FLOOR, STAIRCASE_DOWN, STAIRCASE_UP
 from world.room import Room, Exit
 from world.floor import Floor, GateRequirement
+from entities.enemy import make_goblin, make_rat
 
 # Room size bounds in tiles
 ROOM_MIN_W = 8
@@ -23,25 +24,20 @@ def generate_floor(floor_number, seed):
     rooms      = {}
 
     # ── Step 1: Build main path with varied directions ────────────
-    # The main path walks in random directions instead of always south.
-    # This creates organic L, Z, and winding shapes.
     main_path_length = max(4, room_count // 2)
     main_path_ids    = []
 
-    # Start room
-    first_id = f"room_{len(rooms):03d}"
-    rooms[first_id] = build_room(first_id, floor_number, rng)
+    first_id         = f"room_{len(rooms):03d}"
+    rooms[first_id]  = build_room(first_id, floor_number, rng)
     main_path_ids.append(first_id)
 
     for i in range(main_path_length - 1):
-        parent   = rooms[main_path_ids[-1]]
+        parent    = rooms[main_path_ids[-1]]
         available = get_available_directions(parent)
 
         if not available:
             break
 
-        # Bias toward continuing in the same direction as last step
-        # but allow turns — creates more natural winding paths
         if len(main_path_ids) > 1 and rng.random() < 0.6:
             last_exit = main_path_ids[-1]
             last_room = rooms[main_path_ids[-2]]
@@ -66,8 +62,6 @@ def generate_floor(floor_number, seed):
     remaining = room_count - len(main_path_ids)
 
     for _ in range(remaining):
-        # Pick a random room from all existing rooms to branch from
-        # not just the main path — creates denser graphs
         parent_id = rng.choice(list(rooms.keys()))
         parent    = rooms[parent_id]
         available = get_available_directions(parent)
@@ -80,17 +74,22 @@ def generate_floor(floor_number, seed):
         rooms[room_id] = build_room(room_id, floor_number, rng)
         connect_rooms(parent, rooms[room_id], direction)
 
-    # ── Step 3: Assign room types ─────────────────────────────────
+    # ── Step 3: Assign room types first ──────────────────────────
     assign_room_types(rooms, main_path_ids, rng)
 
-    # ── Step 4: Place staircases ──────────────────────────────────
+    # ── Step 4: Spawn enemies now that room types are correct ─────
     start_id     = main_path_ids[0]
     staircase_id = main_path_ids[-1]
 
+    for room_id, room in rooms.items():
+        if room_id != start_id:   # no enemies in start room
+            spawn_enemies(room, floor_number, rng)
+
+    # ── Step 5: Place staircases ──────────────────────────────────
     place_staircase(rooms[start_id],     "staircase_up")
     place_staircase(rooms[staircase_id], "staircase_down")
 
-    # ── Step 5: Build placeholder gate requirement ────────────────
+    # ── Step 6: Build placeholder gate requirement ────────────────
     gate = GateRequirement(
         floor_number = floor_number,
         type         = "carry",
@@ -132,12 +131,11 @@ def get_room_count(floor_number, rng):
 def build_room(room_id, floor_number, rng):
     """
     Builds a single Room with a random size and filled tile grid.
-    All tiles start as floor — walls are placed on the border.
+    Room type and enemies assigned separately after graph is built.
     """
     width  = rng.randint(ROOM_MIN_W, ROOM_MAX_W)
     height = rng.randint(ROOM_MIN_H, ROOM_MAX_H)
 
-    # Build tile grid — walls on border, floor inside
     tiles = []
     for row in range(height):
         tile_row = []
@@ -274,3 +272,39 @@ def generate_room_name(floor_number, rng):
 
     names = deep_names if floor_number >= 5 else early_names
     return rng.choice(names)
+
+def spawn_enemies(room, floor_number, rng):
+    """
+    Spawns enemies in a room based on floor number and room type.
+    Enemies are placed on random walkable floor tiles.
+    No enemies in start rooms, merchant rooms, or sanctuaries.
+    """
+    if room.room_type in ("merchant", "sanctuary"):
+        return
+
+    # Enemy count based on room type
+    if room.room_type == "chamber":
+        count = rng.randint(2, 4)
+    else:
+        count = rng.randint(0, 2)
+
+    # Get all walkable interior tiles (not walls or exits)
+    walkable = [
+        (col, row)
+        for row in range(1, room.height - 1)
+        for col in range(1, room.width  - 1)
+        if room.tiles[row][col].walkable
+    ]
+
+    rng.shuffle(walkable)
+
+    for i in range(min(count, len(walkable))):
+        col, row = walkable[i]
+
+        # Floor 1-2 — rats and goblins only
+        if floor_number <= 2:
+            enemy = rng.choice([make_goblin, make_rat])(col, row)
+        else:
+            enemy = make_goblin(col, row)
+
+        room.enemies.append(enemy)

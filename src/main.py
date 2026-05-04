@@ -195,6 +195,12 @@ def main():
         game_state.player.draw(screen)
         draw_room(screen, current_room)
         game_state.player.draw(screen)
+        # Draw enemies in current room
+        for enemy in current_room.enemies:
+            enemy.draw(screen)
+
+        game_state.player.draw(screen)
+        draw_room_header(screen, font, current_room)
         draw_room_header(screen, font, current_room)
         draw_sidebar(
             screen, font, font_small,
