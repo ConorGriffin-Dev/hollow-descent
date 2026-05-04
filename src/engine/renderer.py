@@ -368,4 +368,33 @@ def draw_room_header(screen, font, room):
     # Room type right aligned — dim, small
     type_surface = font.render(room.room_type.upper(), True, COL_TEXT_DIM)
     type_x       = ROOM_WIDTH - type_surface.get_width() - 14
-    screen.blit(type_surface, (type_x, ROOM_HEIGHT - 18))        
+    screen.blit(type_surface, (type_x, ROOM_HEIGHT - 18))     
+    
+def draw_game_over(screen, font, font_small):
+    """
+    Draws the game over screen.
+    Full screen dark overlay with death message.
+    Player presses R to restart or ESC to quit.
+    """
+    # Dark overlay
+    screen.fill((5, 0, 0))
+
+    # Centre of screen
+    cx = WINDOW_WIDTH  // 2
+    cy = WINDOW_HEIGHT // 2
+
+    # Title
+    title = font.render("YOU HAVE FALLEN", True, (160, 40, 40))
+    screen.blit(title, (cx - title.get_width() // 2, cy - 60))
+
+    # Subtitle
+    sub = font_small.render(
+        "The Underspire claims another soul.", True, (80, 40, 40)
+    )
+    screen.blit(sub, (cx - sub.get_width() // 2, cy - 30))
+
+    # Instructions
+    inst = font_small.render(
+        "Press ESC to quit.", True, (60, 40, 40)
+    )
+    screen.blit(inst, (cx - inst.get_width() // 2, cy + 20))   
