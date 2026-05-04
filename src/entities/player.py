@@ -71,21 +71,33 @@ class Player:
         rect    = pygame.Rect(pixel_x, pixel_y, TILE_SIZE, TILE_SIZE)
         pygame.draw.rect(screen, COL_PLAYER, rect)
 
-    def to_sidebar_dict(self):
+    def to_sidebar_dict(self, floor=None):
         """
         Returns a dict of display values for the sidebar renderer.
-        Keeps the renderer decoupled from the Player object directly.
+        Accepts optional floor object to calculate room counts.
         """
+        rooms_visited = 0
+        rooms_total   = 0
+
+        if floor:
+            rooms_total   = len(floor.rooms)
+            rooms_visited = sum(
+                1 for room in floor.rooms.values()
+                if room.visited
+            )
+
         return {
-            "floor":   self.current_floor,
-            "hp":      self.hp,
-            "max_hp":  self.max_hp,
-            "xp":      self.xp,
-            "xp_next": self.xp_next,
-            "level":   self.level,
-            "atk":     self.atk,
-            "def_":    self.def_,
-            "spd":     self.spd,
-            "lck":     self.lck,
-            "gold":    self.gold,
+            "floor":         self.current_floor,
+            "hp":            self.hp,
+            "max_hp":        self.max_hp,
+            "xp":            self.xp,
+            "xp_next":       self.xp_next,
+            "level":         self.level,
+            "atk":           self.atk,
+            "def_":          self.def_,
+            "spd":           self.spd,
+            "lck":           self.lck,
+            "gold":          self.gold,
+            "rooms_visited": rooms_visited,
+            "rooms_total":   rooms_total,
         }

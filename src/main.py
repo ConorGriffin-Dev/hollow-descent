@@ -373,11 +373,11 @@ def main():
             game_state.player.draw(screen)
             draw_room_header(screen, font, current_room)
             draw_sidebar(
-                screen, font, font_small,
-                game_state.player.to_sidebar_dict(),
-                game_state.current_floor,
-                game_state.current_floor.player_current_room
-            )
+            screen, font, font_small,
+            game_state.player.to_sidebar_dict(game_state.current_floor),
+            game_state.current_floor,
+            game_state.current_floor.player_current_room
+        )
             draw_message_log(
                 screen, font, font_small,
                 game_state.messages,

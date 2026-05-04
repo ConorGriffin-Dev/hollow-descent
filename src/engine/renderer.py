@@ -127,6 +127,7 @@ def draw_sidebar(screen, font, font_small, player_data, floor, current_room_id):
     draw_text("VINCENT", COL_PLAYER_NAME)
     draw_text(f"Floor  {player_data['floor']} / 10", COL_TEXT_MID, small=True)
     draw_text(f"Level  {player_data['level']}", COL_TEXT_MID, small=True)
+    draw_text(f"Rooms  {player_data['rooms_visited']} / {player_data['rooms_total']}", COL_TEXT_DIM, small=True)
     draw_divider()
 
     # ── HP ─────────────────────────────────────────────────────────
@@ -207,6 +208,8 @@ def draw_minimap(screen, font, floor, current_room_id, start_x, start_y):
         # Pick room colour based on type and state
         if room_id == current_room_id:
             colour = COL_MM_CURRENT
+        elif room_id == floor.staircase_room_id:
+            colour = (80, 50, 100)      # purple — staircase room
         elif room.room_type == "merchant":
             colour = COL_MM_MERCHANT
         elif room.room_type == "secret":
