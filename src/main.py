@@ -9,6 +9,7 @@ from engine.renderer import draw_room, draw_sidebar, draw_message_log
 from engine.game_state import GameState
 from entities.player import Player
 from world.dungeon_gen import generate_floor
+from engine.renderer import draw_room, draw_sidebar, draw_message_log, draw_room_header
 
 def handle_input(event, game_state):
     """
@@ -192,6 +193,20 @@ def main():
         # Draw in order — room, player, UI on top
         draw_room(screen, current_room)
         game_state.player.draw(screen)
+        draw_room(screen, current_room)
+        game_state.player.draw(screen)
+        draw_room_header(screen, font, current_room)
+        draw_sidebar(
+            screen, font, font_small,
+            game_state.player.to_sidebar_dict(),
+            game_state.current_floor,
+            game_state.current_floor.player_current_room
+        )
+        draw_message_log(
+            screen, font, font_small,
+            game_state.messages,
+            game_state.story_message
+        )
         draw_sidebar(
             screen, font, font_small,
             game_state.player.to_sidebar_dict(),

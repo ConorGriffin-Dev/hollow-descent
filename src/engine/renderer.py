@@ -344,3 +344,28 @@ def draw_message_log(screen, font, font_small, messages, story_message=None):
             font_small.render("No messages yet.", True, COL_TEXT_DIM),
             (sx, sy + 10)
         )
+        
+def draw_room_header(screen, font, room):
+    """
+    Draws the current room name at the bottom of the room area
+    just above the message log. Gives the player a sense of place.
+    """
+    # Semi-transparent dark bar behind the text
+    bar_rect = pygame.Rect(0, ROOM_HEIGHT - 24, ROOM_WIDTH, 24)
+    pygame.draw.rect(screen, (10, 8, 6), bar_rect)
+
+    # Top border of the bar
+    pygame.draw.line(
+        screen, COL_BORDER,
+        (0, ROOM_HEIGHT - 24),
+        (ROOM_WIDTH, ROOM_HEIGHT - 24), 1
+    )
+
+    # Room name left aligned
+    name_surface = font.render(room.name, True, COL_TEXT_MID)
+    screen.blit(name_surface, (14, ROOM_HEIGHT - 18))
+
+    # Room type right aligned — dim, small
+    type_surface = font.render(room.room_type.upper(), True, COL_TEXT_DIM)
+    type_x       = ROOM_WIDTH - type_surface.get_width() - 14
+    screen.blit(type_surface, (type_x, ROOM_HEIGHT - 18))        
