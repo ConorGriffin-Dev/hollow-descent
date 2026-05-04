@@ -47,9 +47,16 @@ def handle_input(event, game_state):
         pygame.K_RIGHT: (1,   0),
     }
 
-    if event.key not in direction_map:
+# ── Temporary dev heal — remove before release ────────────────
+    if event.key == pygame.K_h:
+        game_state.player.hp = game_state.player.max_hp
+        game_state.add_message("DEV: Full heal.")
         return
 
+
+    if event.key not in direction_map:
+        return
+    
     d_col, d_row   = direction_map[event.key]
     target_col     = player.col + d_col
     target_row     = player.row + d_row
@@ -96,6 +103,7 @@ def handle_input(event, game_state):
         if player.col != prev_col or player.row != prev_row:
             check_exit_discovery(player, room)
             check_room_transition(game_state)
+            check_staircase(game_state)
             
     # ── Enemy turns ───────────────────────────────────────────────
     if game_state.game_phase != "game_over":
@@ -111,7 +119,8 @@ def handle_input(event, game_state):
                 # Stop immediately if Vincent died this turn
                 if game_state.game_phase == "game_over":
                     break
-
+    
+    
 
 def check_exit_discovery(player, room):
     """
@@ -212,6 +221,92 @@ def check_room_transition(game_state):
                     player.row = next_room.height // 2
 
             break
+
+def check_staircase(game_state):
+    """
+    Checks if Vincent is standing on a staircase tile.
+    If on a descending staircase — generates and transitions to next floor.
+    If on an ascending staircase — loads the previous floor from cache.
+    Gate requirement must be satisfied before descending.
+    """
+    player = game_state.player
+    floor  = game_state.current_floor
+    room   = floor.get_current_room()
+
+    # Get the tile Vincent is standing on
+    current_tile = room.get_tile(player.col, player.row)
+
+    if current_tile.type == "staircase_down":
+        # Check gate requirement
+        if not floor.gate_requirement.satisfied:
+            game_state.add_message(
+                "The way down is sealed. You must prove your worth."
+            )
+            return
+
+        # Cache current floor state before leaving
+        game_state.floor_cache[floor.number] = floor
+
+        next_floor_number = floor.number + 1
+
+        if next_floor_number > 10:
+            # Reached beyond floor 10 — game complete placeholder
+            game_state.add_message("You have reached the depths. Victory!")
+            return
+
+        # Generate next floor if not visited before
+        if next_floor_number in game_state.floor_cache:
+            next_floor = game_state.floor_cache[next_floor_number]
+        else:
+            next_floor = generate_floor(
+                floor_number = next_floor_number,
+                seed         = game_state.run_seed
+            )
+
+        # Transition to next floor
+        game_state.current_floor = next_floor
+        game_state.player.current_floor = next_floor_number
+
+        # Place Vincent at the start room of the new floor
+        start_room         = next_floor.get_current_room()
+        start_room.visited = True
+        player.col         = start_room.width  // 2
+        player.row         = start_room.height // 2
+
+        game_state.add_message(
+            f"You descend to floor {next_floor_number}."
+        )
+
+    elif current_tile.type == "staircase_up":
+        if floor.number == 1:
+            game_state.add_message(
+                "The way back is sealed. There is only down."
+            )
+            return
+
+        # Cache current floor
+        game_state.floor_cache[floor.number] = floor
+
+        prev_floor_number = floor.number - 1
+        prev_floor        = game_state.floor_cache.get(prev_floor_number)
+
+        if not prev_floor:
+            game_state.add_message("You cannot go back.")
+            return
+
+        # Transition to previous floor
+        game_state.current_floor        = prev_floor
+        game_state.player.current_floor = prev_floor_number
+
+        # Place Vincent at the staircase_down room of the previous floor
+        staircase_room = prev_floor.rooms[prev_floor.staircase_room_id]
+        prev_floor.player_current_room = prev_floor.staircase_room_id
+        player.col = staircase_room.width  // 2
+        player.row = staircase_room.height // 2
+
+        game_state.add_message(
+            f"You ascend to floor {prev_floor_number}."
+        )
 
 def main():
     pygame.init()
