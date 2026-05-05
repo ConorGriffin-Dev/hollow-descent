@@ -74,7 +74,7 @@ class Player:
     def to_sidebar_dict(self, floor=None):
         """
         Returns a dict of display values for the sidebar renderer.
-        Accepts optional floor object to calculate room counts.
+        Includes player object reference for inventory rendering.
         """
         rooms_visited = 0
         rooms_total   = 0
@@ -100,4 +100,5 @@ class Player:
             "gold":          self.gold,
             "rooms_visited": rooms_visited,
             "rooms_total":   rooms_total,
+            "player_obj":    self,    # ← full player object for inventory
         }

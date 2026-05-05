@@ -1,5 +1,5 @@
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 def roll_dice(notation):
@@ -8,13 +8,11 @@ def roll_dice(notation):
     Examples: "1d6" "2d4" "1d8+2"
     Returns the integer result.
     """
-    # Split on + for bonus
     bonus = 0
     if "+" in notation:
         notation, bonus_str = notation.split("+")
         bonus = int(bonus_str)
 
-    # Split on d for count and sides
     count, sides = notation.split("d")
     count = int(count)
     sides = int(sides)
@@ -25,40 +23,48 @@ def roll_dice(notation):
 class CombatResult:
     """
     Holds the result of a single combat exchange.
-    Returned by resolve_player_attack() so the game loop
-    can log messages and update state cleanly.
+    Now includes loot dropped on enemy death.
     """
-    hit: bool                       # did the attack land
-    damage: int                     # damage dealt
-    is_crit: bool                   # was it a critical hit
-    target_died: bool               # did the target die
-    xp_gained: int                  # XP awarded if target died
-    message: str                    # human readable result message
+    hit: bool
+    damage: int
+    is_crit: bool
+    target_died: bool
+    xp_gained: int
+    gold_dropped: int           # gold dropped on death
+    item_dropped: object        # Item or None
+    message: str
 
-def resolve_player_attack(player, enemy):
+def resolve_player_attack(player, enemy, floor_number=1):
     """
     Resolves one attack from Vincent against an enemy.
+    Rolls loot on enemy death and includes it in the result.
 
-    Formula from TDD:
-      base      = roll weapon dice (default 1d6 unarmed)
+    Formula:
+      base      = roll weapon dice
       total_atk = base + player.atk
       damage    = max(1, total_atk - enemy.def_)
-      crit      = random() < player.lck * 0.01 → damage * 2
-
-    Returns a CombatResult dataclass.
+      crit      = LCK * 0.01 chance to double damage
     """
-    # Roll base damage — unarmed for now, weapon dice added in Phase 2
-    base      = roll_dice("1d6")
-    total_atk = base + player.atk
+    # Use equipped weapon dice if available, otherwise unarmed
+    if hasattr(player, 'equipped') and player.equipped.get("weapon"):
+        weapon     = player.equipped["weapon"]
+        dice       = weapon.damage_dice if weapon.damage_dice else "1d6"
+        atk_bonus  = weapon.atk_bonus
+    else:
+        dice      = "1d6"    # unarmed
+        atk_bonus = 0
+
+    base      = roll_dice(dice)
+    total_atk = base + player.atk + atk_bonus
     damage    = max(1, total_atk - enemy.def_)
 
-    # Check for critical hit
+    # Critical hit check
     crit_chance = player.lck * 0.01
     is_crit     = random.random() < crit_chance
     if is_crit:
         damage *= 2
 
-    # Apply damage to enemy
+    # Apply damage
     enemy.hp   -= damage
     target_died = enemy.hp <= 0
 
@@ -66,7 +72,15 @@ def resolve_player_attack(player, enemy):
         enemy.hp    = 0
         enemy.alive = False
 
-    # Build result message
+    # Roll loot if enemy died
+    gold_dropped = 0
+    item_dropped = None
+
+    if target_died:
+        from systems.loot import roll_loot
+        gold_dropped, item_dropped = roll_loot(enemy, floor_number)
+
+    # Build message
     if is_crit:
         message = f"Critical hit! You strike {enemy.name} for {damage} damage."
     else:
@@ -76,28 +90,25 @@ def resolve_player_attack(player, enemy):
         message += f" {enemy.name} is slain."
 
     return CombatResult(
-        hit         = True,
-        damage      = damage,
-        is_crit     = is_crit,
-        target_died = target_died,
-        xp_gained   = enemy.xp_reward if target_died else 0,
-        message     = message
+        hit          = True,
+        damage       = damage,
+        is_crit      = is_crit,
+        target_died  = target_died,
+        xp_gained    = enemy.xp_reward if target_died else 0,
+        gold_dropped = gold_dropped,
+        item_dropped = item_dropped,
+        message      = message
     )
 
 def resolve_enemy_attack(enemy, player):
     """
     Resolves one attack from an enemy against Vincent.
-
-    Formula mirrors player attack but uses enemy stats.
-    Enemies deal minimum 1 damage even against high DEF.
-
-    Returns a message string for the log.
+    Returns a message string and damage value.
     """
     base      = roll_dice("1d4")
     total_atk = base + enemy.atk
     damage    = max(1, total_atk - player.def_)
 
-    # Apply damage to player
     player.hp -= damage
 
     message = f"{enemy.name} strikes you for {damage} damage."
@@ -111,22 +122,19 @@ def resolve_enemy_attack(enemy, player):
 def check_level_up(player):
     """
     Checks if the player has enough XP to level up.
-    Increases level, recalculates stats, resets XP threshold.
     Returns True if a level up occurred.
     """
     if player.xp < player.xp_next:
         return False
 
-    player.level   += 1
-    player.xp      -= player.xp_next
+    player.level  += 1
+    player.xp     -= player.xp_next
+    player.xp_next = int(100 * (player.level ** 1.5))
 
-    # XP threshold scales with level — each level needs more XP
-    player.xp_next  = int(100 * (player.level ** 1.5))
-
-    # Stat increases on level up
-    player.max_hp  += 15
-    player.hp       = player.max_hp   # full heal on level up
-    player.atk     += 2
-    player.def_    += 1
+    # Stat increases
+    player.max_hp += 15
+    player.hp      = player.max_hp
+    player.atk    += 2
+    player.def_   += 1
 
     return True

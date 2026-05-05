@@ -17,6 +17,11 @@ from engine.renderer import (
     draw_room_header, draw_game_over
 )
 
+from engine.renderer import (
+    draw_room, draw_sidebar, draw_message_log,
+    draw_room_header, draw_game_over, draw_floor_items
+)
+
 def handle_input(event, game_state):
     """
     Maps WASD and arrow keys to player movement or combat.
@@ -53,6 +58,13 @@ def handle_input(event, game_state):
         game_state.add_message("DEV: Full heal.")
         return
 
+# ── Pick up item ──────────────────────────────────────────────
+    if event.key == pygame.K_g:
+        pickup_item(game_state)
+        return
+
+    if event.key not in direction_map:
+        return
 
     if event.key not in direction_map:
         return
@@ -66,17 +78,34 @@ def handle_input(event, game_state):
 
     if enemy:
         # ── Player attacks enemy ──────────────────────────────────
-        result = resolve_player_attack(player, enemy)
+        result = resolve_player_attack(
+            player, enemy,
+            floor_number = game_state.current_floor.number
+        )
         game_state.add_message(result.message)
 
         if result.target_died:
             # Award XP
             player.xp += result.xp_gained
-            game_state.add_message(
-                f"You gain {result.xp_gained} XP."
-            )
+            game_state.add_message(f"You gain {result.xp_gained} XP.")
 
-            # Check for level up
+            # Award gold
+            if result.gold_dropped > 0:
+                player.gold += result.gold_dropped
+                game_state.add_message(
+                    f"You find {result.gold_dropped} gold."
+                )
+
+            # Drop item onto the floor at enemy position
+            if result.item_dropped:
+                result.item_dropped.floor_col = enemy.col
+                result.item_dropped.floor_row = enemy.row
+                room.items.append(result.item_dropped)
+                game_state.add_message(
+                    f"{enemy.name} drops {result.item_dropped.display_name()}."
+                )
+
+            # Check level up
             levelled = check_level_up(player)
             if levelled:
                 game_state.add_message(
@@ -84,11 +113,10 @@ def handle_input(event, game_state):
                 )
 
         else:
-            # ── Enemy attacks back if still alive ─────────────────
+            # Enemy counter attacks if still alive
             enemy_msg, damage = resolve_enemy_attack(enemy, player)
             game_state.add_message(enemy_msg)
 
-            # Check if Vincent died
             if player.hp <= 0:
                 game_state.game_phase = "game_over"
                 game_state.add_message(
@@ -104,6 +132,7 @@ def handle_input(event, game_state):
             check_exit_discovery(player, room)
             check_room_transition(game_state)
             check_staircase(game_state)
+            check_item_pickup(game_state)
             
     # ── Enemy turns ───────────────────────────────────────────────
     if game_state.game_phase != "game_over":
@@ -307,6 +336,85 @@ def check_staircase(game_state):
         game_state.add_message(
             f"You ascend to floor {prev_floor_number}."
         )
+        
+def check_item_pickup(game_state):
+    """
+    Checks if Vincent is standing on a tile with an item.
+    If so, adds a pickup prompt to the message log.
+    Called every time Vincent moves.
+    """
+    player = game_state.player
+    room   = game_state.current_floor.get_current_room()
+
+    for item in room.items:
+        if item.floor_col == player.col and item.floor_row == player.row:
+            game_state.add_message(
+                f"You see {item.display_name()}. Press G to pick up."
+            )
+            return
+
+def pickup_item(game_state):
+    """
+    Picks up the item at Vincent's current position.
+    Checks inventory cap before adding.
+    Consumables stack up to 5 in one slot.
+    Story items go into a separate list and don't count
+    toward the cap after the second oath.
+    """
+    player = game_state.player
+    room   = game_state.current_floor.get_current_room()
+
+    # Find item at player position
+    item_to_pickup = None
+    for item in room.items:
+        if item.floor_col == player.col and item.floor_row == player.row:
+            item_to_pickup = item
+            break
+
+    if not item_to_pickup:
+        return
+
+    # Handle story items separately
+    if item_to_pickup.is_story_item:
+        player.story_items.append(item_to_pickup)
+        room.items.remove(item_to_pickup)
+        game_state.add_message(
+            f"You take {item_to_pickup.display_name()}."
+        )
+        return
+
+    # Check if consumable stacks with existing inventory item
+    if item_to_pickup.category == "consumable":
+        for existing in player.inventory:
+            if existing.id == item_to_pickup.id:
+                if existing.quantity >= 5:
+                    # Stack is full — block pickup
+                    game_state.add_message(
+                        f"You already carry 5 {item_to_pickup.display_name()}s."
+                    )
+                    return
+                else:
+                    existing.quantity += 1
+                    room.items.remove(item_to_pickup)
+                    game_state.add_message(
+                        f"You pick up {item_to_pickup.display_name()}. "
+                        f"({existing.quantity}/5)"
+                    )
+                    return
+
+    # Check inventory cap
+    if len(player.inventory) >= player.inventory_cap:
+        game_state.add_message(
+            "Your inventory is full. Drop something first."
+        )
+        return
+
+    # Add to inventory
+    player.inventory.append(item_to_pickup)
+    room.items.remove(item_to_pickup)
+    game_state.add_message(
+        f"You pick up {item_to_pickup.display_name()}."
+    )
 
 def main():
     pygame.init()
@@ -368,6 +476,7 @@ def main():
             current_room = game_state.current_floor.get_current_room()
 
             draw_room(screen, current_room)
+            draw_floor_items(screen, current_room) 
             for enemy in current_room.enemies:
                 enemy.draw(screen)
             game_state.player.draw(screen)

@@ -62,6 +62,37 @@ def draw_room(screen, room):
             rect    = pygame.Rect(pixel_x, pixel_y, TILE_SIZE, TILE_SIZE)
             pygame.draw.rect(screen, colour, rect)
             pygame.draw.rect(screen, (18, 15, 12), rect, 1)
+            
+def draw_floor_items(screen, room):
+    """
+    Draws items lying on the room floor.
+    Each item category has a distinct colour.
+    Items show a small symbol so the player can identify category.
+    """
+    # Colours per item category
+    ITEM_COLOURS = {
+        "weapon":      (180, 160, 80),    # amber gold
+        "armor":       (80,  120, 180),   # steel blue
+        "consumable":  (180, 80,  80),    # red
+        "material":    (120, 120, 120),   # grey
+        "story":       (80,  180, 120),   # glowing green
+    }
+
+    for item in room.items:
+        colour  = ITEM_COLOURS.get(item.category, (150, 150, 150))
+        pixel_x = item.floor_col * TILE_SIZE
+        pixel_y = item.floor_row * TILE_SIZE
+
+        # Draw a smaller rectangle centred in the tile
+        # so it's distinct from enemy and player rectangles
+        padding = TILE_SIZE // 4
+        rect    = pygame.Rect(
+            pixel_x + padding,
+            pixel_y + padding,
+            TILE_SIZE - padding * 2,
+            TILE_SIZE - padding * 2
+        )
+        pygame.draw.rect(screen, colour, rect)
 
 def get_exit_tile_position(room, direction):
     """
@@ -167,6 +198,18 @@ def draw_sidebar(screen, font, font_small, player_data, floor, current_room_id):
 
     if floor:
         draw_minimap(screen, font_small, floor, current_room_id, x, y)
+        # Calculate how tall the minimap is to position inventory below it
+        y += get_minimap_height(floor)
+
+    draw_divider()
+
+    # ── Inventory ──────────────────────────────────────────────────
+    if player_data.get("player_obj"):
+        draw_inventory(
+            screen, font, font_small,
+            player_data["player_obj"],
+            x, y
+        )
 
 def draw_minimap(screen, font, floor, current_room_id, start_x, start_y):
     """
@@ -285,6 +328,100 @@ def assign_minimap_positions(floor, positions, room_id=None, col=0, row=0, visit
                 row     = row + d_row,
                 visited = visited
             )
+            
+def get_minimap_height(floor):
+    """
+    Calculates the pixel height the minimap occupies
+    so we can position the inventory correctly below it.
+    """
+    if not floor:
+        return 0
+
+    positions = {}
+    assign_minimap_positions(floor, positions)
+
+    if not positions:
+        return 0
+
+    all_rows = [p[1] for p in positions.values()]
+    if not all_rows:
+        return 0
+
+    row_count = max(all_rows) - min(all_rows) + 1
+    return row_count * (MINIMAP_CELL + MINIMAP_GAP) + 8
+            
+def draw_inventory(screen, font, font_small, player, start_x, start_y):
+    """
+    Draws the inventory grid in the sidebar.
+    Shows all items in player.inventory as a grid of slots.
+    Each slot shows item category colour and short name.
+    Empty slots shown as dim squares.
+    """
+    # Colours per item category
+    SLOT_COLOURS = {
+        "weapon":     (180, 160, 80),
+        "armor":      (80,  120, 180),
+        "consumable": (180, 80,  80),
+        "material":   (120, 120, 120),
+        "story":      (80,  180, 120),
+    }
+
+    SLOT_SIZE    = 28      # pixel size of each inventory slot
+    SLOT_GAP     = 3       # gap between slots
+    SLOTS_PER_ROW = 4      # 4 slots per row
+
+    x = start_x
+    y = start_y
+
+    # Draw cap indicator
+    cap_text = font_small.render(
+        f"INVENTORY  {len(player.inventory)}/{player.inventory_cap}",
+        True, COL_TEXT_DIM
+    )
+    screen.blit(cap_text, (x, y))
+    y += 16
+
+    # Draw each slot
+    for i in range(player.inventory_cap):
+        slot_col = i % SLOTS_PER_ROW
+        slot_row = i // SLOTS_PER_ROW
+
+        px = x + slot_col * (SLOT_SIZE + SLOT_GAP)
+        py = y + slot_row * (SLOT_SIZE + SLOT_GAP)
+
+        # Draw slot background
+        slot_rect = pygame.Rect(px, py, SLOT_SIZE, SLOT_SIZE)
+
+        if i < len(player.inventory):
+            item   = player.inventory[i]
+            colour = SLOT_COLOURS.get(item.category, (100, 100, 100))
+
+            # Filled slot — coloured background
+            pygame.draw.rect(screen, colour, slot_rect)
+            pygame.draw.rect(screen, COL_BORDER, slot_rect, 1)
+
+            # Item quantity for consumables
+            if item.category == "consumable" and item.quantity > 1:
+                qty = font_small.render(str(item.quantity), True, (255, 255, 255))
+                screen.blit(qty, (px + SLOT_SIZE - qty.get_width() - 2, py + 2))
+
+        else:
+            # Empty slot — dim background
+            pygame.draw.rect(screen, (20, 18, 15), slot_rect)
+            pygame.draw.rect(screen, (35, 30, 25), slot_rect, 1)
+
+    # Draw selected item info below grid
+    rows         = (player.inventory_cap + SLOTS_PER_ROW - 1) // SLOTS_PER_ROW
+    info_y       = y + rows * (SLOT_SIZE + SLOT_GAP) + 6
+
+    if player.inventory:
+        # Show info for first item as placeholder
+        # Full item selection added in next step
+        item = player.inventory[0]
+        name = font_small.render(item.display_name(), True, COL_TEXT_MID)
+        desc = font_small.render(item.short_desc(),   True, COL_TEXT_DIM)
+        screen.blit(name, (x, info_y))
+        screen.blit(desc, (x, info_y + 14))
 
 def draw_message_log(screen, font, font_small, messages, story_message=None):
     """
