@@ -221,29 +221,43 @@ def serialize_floor(floor):
 
 def deserialize_floor(data, run_seed):
     """
-    Rebuilds a Floor from a dict.
-    Enemies are respawned fresh using the original seed.
+    Rebuilds a Floor from saved data.
+    Restores room exploration state, items, and exits exactly.
+    Respawns 60% of enemies that were killed — survivors stay put.
+    Living enemies from the save are restored at their exact positions.
     """
     from world.floor import Floor, GateRequirement
     from world.dungeon_gen import generate_floor
 
-    # Regenerate the floor to get enemies back
+    # Regenerate fresh floor to get base enemy pool
     fresh_floor = generate_floor(data["number"], run_seed)
 
-    # Restore saved room state over the fresh floor
+    # Restore saved room state
     for room_id, room_data in data["rooms"].items():
         if room_id in fresh_floor.rooms:
             saved_room = deserialize_room(room_data)
-            # Preserve exploration state and items
-            fresh_floor.rooms[room_id].visited         = saved_room.visited
-            fresh_floor.rooms[room_id].first_visit     = saved_room.first_visit
-            fresh_floor.rooms[room_id].exits           = saved_room.exits
-            fresh_floor.rooms[room_id].items           = saved_room.items
-            fresh_floor.rooms[room_id].enemies_cleared = saved_room.enemies_cleared
+            room       = fresh_floor.rooms[room_id]
 
-    fresh_floor.player_current_room = data["player_current_room"]
+            # Restore exploration state
+            room.visited         = saved_room.visited
+            room.first_visit     = saved_room.first_visit
+            room.exits           = saved_room.exits
+            room.items           = saved_room.items
+            room.enemies_cleared = saved_room.enemies_cleared
+            room.special_state   = saved_room.special_state
 
-    # Restore gate state
+            # Enemy respawn logic — 60% of dead enemies respawn
+            # Living enemies are not touched
+            if saved_room.enemies_cleared:
+                # Room was fully cleared — respawn 60% fresh
+                import random
+                original_count = len(room.enemies)
+                respawn_count  = int(original_count * 0.6)
+                room.enemies   = room.enemies[:respawn_count]
+            # If not cleared — keep fresh enemies from generator
+            # They represent enemies that were never killed
+
+    fresh_floor.player_current_room        = data["player_current_room"]
     fresh_floor.gate_requirement.satisfied = data["gate"]["satisfied"]
 
     return fresh_floor

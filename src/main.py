@@ -127,6 +127,9 @@ def handle_input(event, game_state):
             # Award XP
             player.xp += result.xp_gained
             game_state.add_message(f"You gain {result.xp_gained} XP.")
+            
+            # Check if room is now fully cleared
+            room.all_enemies_dead()    
 
             # Award gold
             if result.gold_dropped > 0:

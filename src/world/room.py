@@ -78,5 +78,11 @@ class Room:
         return None
 
     def all_enemies_dead(self):
-        """Returns True if all enemies in the room are dead."""
-        return all(not e.alive for e in self.enemies)
+        """
+        Returns True if all enemies in the room are dead.
+        Also marks the room as cleared when this becomes True.
+        """
+        cleared = all(not e.alive for e in self.enemies)
+        if cleared and self.enemies:
+            self.enemies_cleared = True
+        return cleared
