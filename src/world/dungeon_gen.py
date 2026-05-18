@@ -84,6 +84,7 @@ def generate_floor(floor_number, seed):
     for room_id, room in rooms.items():
         if room_id != start_id:   # no enemies in start room
             spawn_enemies(room, floor_number, rng)
+            place_chests(room, floor_number, rng)
 
     # ── Step 5: Place staircases ──────────────────────────────────
     place_staircase(rooms[start_id],     "staircase_up")
@@ -307,3 +308,48 @@ def spawn_enemies(room, floor_number, rng):
             enemy = make_goblin(col, row, floor_number)
 
         room.enemies.append(enemy)
+        
+def place_chests(room, floor_number, rng):
+    """
+    Places chests in a room based on room type.
+    Chests are placed on random walkable floor tiles.
+    Chamber rooms always get a chest.
+    Standard rooms have a small chance of a chest.
+    Merchant and sanctuary rooms never get chests.
+    """
+    from world.tile import CHEST_CLOSED
+
+    if room.room_type in ("merchant", "sanctuary"):
+        return
+
+    # Determine chest count
+    if room.room_type == "chamber":
+        count = 1
+    elif rng.random() < 0.2:    # 20% chance in standard rooms
+        count = 1
+    else:
+        return
+
+    # Find walkable interior tiles not occupied by enemies
+    occupied = {(e.col, e.row) for e in room.enemies}
+
+    walkable = [
+        (col, row)
+        for row in range(1, room.height - 1)
+        for col in range(1, room.width  - 1)
+        if room.tiles[row][col].walkable
+        and (col, row) not in occupied
+    ]
+
+    rng.shuffle(walkable)
+
+    for i in range(min(count, len(walkable))):
+        col, row = walkable[i]
+        # Place chest tile — blocks movement until opened
+        room.tiles[row][col] = CHEST_CLOSED
+        # Store chest position in special_state for interaction
+        room.special_state[f"chest_{col}_{row}"] = {
+            "col":    col,
+            "row":    row,
+            "opened": False,
+        }        

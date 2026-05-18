@@ -100,7 +100,9 @@ def handle_input(event, game_state):
         pickup_item(game_state)
         return
 
-    if event.key not in direction_map:
+    # ── Open chest ────────────────────────────────────────────────
+    if event.key == pygame.K_f:
+        open_chest(game_state)
         return
 
     if event.key not in direction_map:
@@ -170,6 +172,7 @@ def handle_input(event, game_state):
             check_room_transition(game_state)
             check_staircase(game_state)
             check_item_pickup(game_state)
+            check_chest_interaction(game_state)
             
     # ── Enemy turns ───────────────────────────────────────────────
     if game_state.game_phase != "game_over":
@@ -381,6 +384,97 @@ def check_item_pickup(game_state):
                 f"You see {item.display_name()}. Press G to pick up."
             )
             return
+
+def check_chest_interaction(game_state):
+    """
+    Checks if Vincent is adjacent to a chest tile.
+    If so prompts the player to press E to open it.
+    """
+    player = game_state.player
+    room   = game_state.current_floor.get_current_room()
+
+    # Check all adjacent tiles for a closed chest
+    for d_col, d_row in [(0,-1),(0,1),(-1,0),(1,0)]:
+        check_col = player.col + d_col
+        check_row = player.row + d_row
+
+        if not (0 <= check_row < room.height and
+                0 <= check_col < room.width):
+            continue
+
+        tile = room.get_tile(check_col, check_row)
+        if tile.type == "chest_closed":
+            game_state.add_message(
+                "A chest. Press F to open it."
+            )
+            return
+
+def open_chest(game_state):
+    """
+    Opens a chest adjacent to Vincent.
+    Generates loot and places it on the floor.
+    Replaces chest tile with open chest tile.
+    """
+    from world.tile import CHEST_OPEN
+    from systems.loot import generate_drop
+
+    player = game_state.player
+    room   = game_state.current_floor.get_current_room()
+    floor  = game_state.current_floor
+
+    # Find adjacent closed chest
+    for d_col, d_row in [(0,-1),(0,1),(-1,0),(1,0)]:
+        check_col = player.col + d_col
+        check_row = player.row + d_row
+
+        if not (0 <= check_row < room.height and
+                0 <= check_col < room.width):
+            continue
+
+        tile = room.get_tile(check_col, check_row)
+        if tile.type == "chest_closed":
+            # Open the chest
+            room.tiles[check_row][check_col] = CHEST_OPEN
+
+            # Update special state
+            chest_key = f"chest_{check_col}_{check_row}"
+            if chest_key in room.special_state:
+                room.special_state[chest_key]["opened"] = True
+
+            # Generate 1-2 items
+            import random
+            item_count = random.randint(1, 2)
+            gold       = random.randint(5, 20) * floor.number
+
+            # Award gold
+            player.gold += gold
+            game_state.add_message(f"The chest opens. You find {gold} gold.")
+
+            # Generate and place items near the chest
+            for i in range(item_count):
+                item = generate_drop(floor.number)
+
+                # Place item adjacent to chest on a walkable tile
+                placed = False
+                for dc, dr in [(0,1),(0,-1),(1,0),(-1,0)]:
+                    adj_col = check_col + dc
+                    adj_row = check_row + dr
+                    if room.is_walkable(adj_col, adj_row):
+                        item.floor_col = adj_col
+                        item.floor_row = adj_row
+                        placed = True
+                        break
+
+                # Fallback to player position if no adjacent tile free
+                if not placed:
+                    item.floor_col = player.col
+                    item.floor_row = player.row
+
+                room.items.append(item)
+
+            return
+
+    game_state.add_message("Nothing to open here.")
 
 def pickup_item(game_state):
     """
@@ -683,14 +777,8 @@ def main():
                     game_state.player,
                     game_state.inventory_selected
                 )
-
         pygame.display.flip()
         clock.tick(FPS)
-        
+
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        input("Press Enter to exit...")       
+    main()

@@ -19,6 +19,9 @@ TILE_COLOURS = {
     "door":           (100, 70,  40),
     "staircase_down": (80,  50, 100),
     "staircase_up":   (80,  50, 100),
+    "chest_closed":   (140, 100, 30),   # warm gold — unopened
+    "chest_open":     (60,  45,  20),   # dim gold — opened
+
 }
 
 # Minimap cell size in pixels

@@ -41,3 +41,15 @@ STAIRCASE_UP = Tile(
     walkable=True,
     blocks_sight=False
 )
+
+CHEST_CLOSED = Tile(
+    type         = "chest_closed",
+    walkable     = False,
+    blocks_sight = False
+)
+
+CHEST_OPEN = Tile(
+    type         = "chest_open",
+    walkable     = False,
+    blocks_sight = False
+)
