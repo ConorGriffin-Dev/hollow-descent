@@ -36,6 +36,17 @@ class Player:
     # Inventory (to be expanded in Phase 2)
     inventory: List     = field(default_factory=list)
     inventory_cap: int  = 12
+    # Inventory (to be expanded in Phase 2)
+    inventory: List     = field(default_factory=list)
+    inventory_cap: int  = 12
+    equipped: Dict      = field(default_factory=lambda: {
+        "weapon": None,
+        "helmet": None,
+        "chest":  None,
+        "gloves": None,
+        "boots":  None,
+    })
+    story_items: List   = field(default_factory=list)
     story_items: List   = field(default_factory=list)
 
     # Abilities and progression tracking

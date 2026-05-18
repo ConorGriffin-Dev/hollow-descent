@@ -301,10 +301,9 @@ def spawn_enemies(room, floor_number, rng):
     for i in range(min(count, len(walkable))):
         col, row = walkable[i]
 
-        # Floor 1-2 — rats and goblins only
         if floor_number <= 2:
-            enemy = rng.choice([make_goblin, make_rat])(col, row)
+            enemy = rng.choice([make_goblin, make_rat])(col, row, floor_number)
         else:
-            enemy = make_goblin(col, row)
+            enemy = make_goblin(col, row, floor_number)
 
         room.enemies.append(enemy)

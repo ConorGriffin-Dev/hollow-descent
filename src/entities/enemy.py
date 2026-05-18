@@ -13,6 +13,27 @@ ENEMY_COLOURS = {
     "default":      (160, 60,  60),    # fallback red
 }
 
+FLOOR_SCALING = {
+    1:  1.0,
+    2:  1.5,
+    3:  2,
+    4:  2.3,
+    5:  2.7,
+    6:  3.1,
+    7:  3.5,
+    8:  3.8,
+    9:  4,
+    10: 5,
+}
+
+def scale_stat(base, floor_number):
+    """
+    Scales a base stat by the floor multiplier.
+    Always returns at least 1.
+    """
+    multiplier = FLOOR_SCALING.get(floor_number, 1.0)
+    return max(1, int(base * multiplier))
+
 @dataclass
 class Enemy:
     """
@@ -73,39 +94,49 @@ def draw_enemy_hp_bar(screen, pixel_x, pixel_y, hp, max_hp):
                      pygame.Rect(pixel_x, bar_y, fill, bar_height))
 
 
-def make_goblin(col, row):
+def make_goblin(col, row, floor_number=1):
     """
     Factory function — creates a standard goblin enemy.
     Factory functions keep enemy creation clean and consistent.
     """
+    hp  = scale_stat(15, floor_number)
+    atk = scale_stat(4,  floor_number)
+    def_ = scale_stat(1, floor_number)
+    xp  = int(20 * FLOOR_SCALING.get(floor_number, 1.0))
+    
     return Enemy(
-        id           = f"goblin_{col}_{row}",
-        name         = "Goblin",
-        enemy_type   = "goblin",
-        hp           = 15,
-        max_hp       = 15,
-        atk          = 4,
-        def_         = 1,
-        spd          = 8,
-        xp_reward    = 20,
-        col          = col,
-        row          = row,
-        behavior     = "aggressive",
+        id         = f"goblin_{col}_{row}",
+        name       = "Goblin",
+        enemy_type = "goblin",
+        hp         = hp,
+        max_hp     = hp,
+        atk        = atk,
+        def_       = def_,
+        spd        = 8,
+        xp_reward  = xp,
+        col        = col,
+        row        = row,
+        behavior   = "aggressive",
     )
 
-def make_rat(col, row):
+def make_rat(col, row, floor_number=1):
     """Factory function — creates a rat enemy."""
+    
+    hp  = scale_stat(8,  floor_number)
+    atk = scale_stat(2,  floor_number)
+    xp  = int(10 * FLOOR_SCALING.get(floor_number, 1.0))
+    
     return Enemy(
-        id           = f"rat_{col}_{row}",
-        name         = "Rat",
-        enemy_type   = "rat",
-        hp           = 8,
-        max_hp       = 8,
-        atk          = 2,
-        def_         = 0,
-        spd          = 12,
-        xp_reward    = 10,
-        col          = col,
-        row          = row,
-        behavior     = "aggressive",
+        id         = f"rat_{col}_{row}",
+        name       = "Rat",
+        enemy_type = "rat",
+        hp         = hp,
+        max_hp     = hp,
+        atk        = atk,
+        def_       = 0,
+        spd        = 12,
+        xp_reward  = xp,
+        col        = col,
+        row        = row,
+        behavior   = "aggressive",
     )

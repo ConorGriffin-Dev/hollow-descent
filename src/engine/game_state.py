@@ -33,6 +33,10 @@ class GameState:
     # e.g. flags["journal_found"]  = True
     #      flags["voryn_spoke"]    = True
     #      flags["veil_weakened"]  = False
+    
+    # Inventory screen state
+    inventory_open: bool = False
+    inventory_selected: int = 0    # currently highlighted slot index
 
     def add_message(self, text):
         """Appends a general message to the log."""

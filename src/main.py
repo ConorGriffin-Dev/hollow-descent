@@ -14,13 +14,11 @@ from engine.renderer import draw_room, draw_sidebar, draw_message_log, draw_room
 from systems.combat import resolve_player_attack, resolve_enemy_attack, check_level_up
 from engine.renderer import (
     draw_room, draw_sidebar, draw_message_log,
-    draw_room_header, draw_game_over
+    draw_room_header, draw_game_over, draw_floor_items,
+    draw_inventory_screen
 )
 
-from engine.renderer import (
-    draw_room, draw_sidebar, draw_message_log,
-    draw_room_header, draw_game_over, draw_floor_items
-)
+
 
 def handle_input(event, game_state):
     """
@@ -51,6 +49,39 @@ def handle_input(event, game_state):
         pygame.K_d:     (1,   0),
         pygame.K_RIGHT: (1,   0),
     }
+
+# ── Inventory open/close ──────────────────────────────────────
+    if event.key == pygame.K_i:
+        game_state.inventory_open = not game_state.inventory_open
+        game_state.inventory_selected = 0
+        return
+
+    # ── Inventory navigation and actions ─────────────────────────
+    if game_state.inventory_open:
+        inventory = game_state.player.inventory
+
+        if event.key == pygame.K_UP:
+            game_state.inventory_selected = max(
+                0, game_state.inventory_selected - 1
+            )
+        elif event.key == pygame.K_DOWN:
+            game_state.inventory_selected = min(
+                len(inventory) - 1,
+                game_state.inventory_selected + 1
+            )
+        elif event.key == pygame.K_ESCAPE:
+            game_state.inventory_open = False
+
+        elif event.key == pygame.K_u:
+            use_item(game_state)
+
+        elif event.key == pygame.K_e:
+            equip_item(game_state)
+
+        elif event.key == pygame.K_d:
+            drop_item(game_state)
+
+        return
 
 # ── Temporary dev heal — remove before release ────────────────
     if event.key == pygame.K_h:
@@ -416,6 +447,141 @@ def pickup_item(game_state):
         f"You pick up {item_to_pickup.display_name()}."
     )
 
+def use_item(game_state):
+    """
+    Uses the currently selected inventory item.
+    Only consumables can be used.
+    Fires the item effect and reduces quantity.
+    Removes item from inventory if quantity reaches 0.
+    """
+    player    = game_state.player
+    inventory = player.inventory
+
+    if not inventory:
+        return
+
+    idx  = game_state.inventory_selected
+    item = inventory[idx]
+
+    if item.category != "consumable":
+        game_state.add_message(f"You can't use {item.display_name()} like that.")
+        return
+
+    # Identify the item on use
+    item.identified = True
+
+    # Fire effect
+    if item.effect == "heal":
+        healed    = min(item.effect_value, player.max_hp - player.hp)
+        player.hp = min(player.max_hp, player.hp + item.effect_value)
+        game_state.add_message(
+            f"You drink {item.display_name()}. Restored {healed} HP."
+        )
+
+    elif item.effect == "reveal_map":
+        # Mark all rooms on current floor as visited
+        for room in game_state.current_floor.rooms.values():
+            room.visited = True
+            for exit in room.exits:
+                exit.discovered = True
+        game_state.add_message("The scroll burns. The floor reveals itself.")
+
+    # Reduce quantity
+    item.quantity -= 1
+    if item.quantity <= 0:
+        inventory.pop(idx)
+        # Adjust selected index if needed
+        game_state.inventory_selected = min(
+            idx, len(inventory) - 1
+        )
+
+def equip_item(game_state):
+    """
+    Equips the selected weapon or armor item.
+    Swaps with currently equipped item in that slot.
+    Equipped item returns to inventory.
+    Updates player stats immediately.
+    """
+    player    = game_state.player
+    inventory = player.inventory
+
+    if not inventory:
+        return
+
+    idx  = game_state.inventory_selected
+    item = inventory[idx]
+
+    if item.category not in ("weapon", "armor"):
+        game_state.add_message(f"You can't equip {item.display_name()}.")
+        return
+
+    slot = item.slot
+
+    # Unequip current item in that slot
+    if player.equipped.get(slot):
+        old_item = player.equipped[slot]
+
+        # Remove stat bonuses from old item
+        if old_item.category == "weapon":
+            player.atk -= old_item.atk_bonus
+        elif old_item.category == "armor":
+            player.def_ -= old_item.def_bonus
+
+        # Return old item to inventory
+        inventory.append(old_item)
+
+    # Equip new item
+    player.equipped[slot] = item
+    inventory.pop(idx)
+
+    # Apply stat bonuses
+    if item.category == "weapon":
+        player.atk += item.atk_bonus
+    elif item.category == "armor":
+        player.def_ += item.def_bonus
+
+    game_state.add_message(f"You equip {item.display_name()}.")
+
+    # Adjust selected index
+    game_state.inventory_selected = min(
+        game_state.inventory_selected,
+        len(inventory) - 1
+    )
+
+def drop_item(game_state):
+    """
+    Drops the selected item onto the current room floor.
+    Item appears at Vincent's current position.
+    Removes item from inventory.
+    """
+    player    = game_state.player
+    inventory = player.inventory
+
+    if not inventory:
+        return
+
+    idx  = game_state.inventory_selected
+    item = inventory[idx]
+
+    # Place item at Vincent's feet
+    item.floor_col = player.col
+    item.floor_row = player.row
+
+    # Add to room items
+    room = game_state.current_floor.get_current_room()
+    room.items.append(item)
+
+    # Remove from inventory
+    inventory.pop(idx)
+
+    game_state.add_message(f"You drop {item.display_name()}.")
+
+    # Adjust selected index
+    game_state.inventory_selected = min(
+        game_state.inventory_selected,
+        len(inventory) - 1
+    )
+
 def main():
     pygame.init()
 
@@ -492,6 +658,14 @@ def main():
                 game_state.messages,
                 game_state.story_message
             )
+            
+            # Draw inventory overlay on top if open
+            if game_state.inventory_open:
+                draw_inventory_screen(
+                    screen, font, font_small,
+                    game_state.player,
+                    game_state.inventory_selected
+                )
 
         pygame.display.flip()
         clock.tick(FPS)

@@ -191,6 +191,32 @@ def draw_sidebar(screen, font, font_small, player_data, floor, current_room_id):
     draw_text(f"Gold   {player_data['gold']}", COL_GOLD)
 
     draw_divider()
+    
+    # ── Equipped ───────────────────────────────────────────────────
+    draw_text("EQUIPPED", COL_TEXT_DIM, small=True)
+    y += 2
+
+    if player_data.get("player_obj"):
+        equipped = player_data["player_obj"].equipped
+        weapon   = equipped.get("weapon")
+        chest    = equipped.get("chest")
+        helmet   = equipped.get("helmet")
+
+        draw_text(
+            f"WPN  {weapon.true_name if weapon else '---'}",
+            COL_ATK if weapon else COL_TEXT_DIM,
+            small=True
+        )
+        draw_text(
+            f"CHE  {chest.true_name if chest else '---'}",
+            COL_DEF if chest else COL_TEXT_DIM,
+            small=True
+        )
+        draw_text(
+            f"HLM  {helmet.true_name if helmet else '---'}",
+            COL_DEF if helmet else COL_TEXT_DIM,
+            small=True
+        )
 
     # ── Minimap ────────────────────────────────────────────────────
     draw_text("MAP", COL_TEXT_DIM, small=True)
@@ -537,4 +563,196 @@ def draw_game_over(screen, font, font_small):
     inst = font_small.render(
         "Press ESC to quit.", True, (60, 40, 40)
     )
-    screen.blit(inst, (cx - inst.get_width() // 2, cy + 20))   
+    screen.blit(inst, (cx - inst.get_width() // 2, cy + 20))  
+    
+def draw_inventory_screen(screen, font, font_small, player, selected_index):
+    """
+    Draws a full inventory overlay screen.
+    Shows all items with details on the selected item.
+    Player navigates with arrow keys, acts with U/E/D.
+    """
+    # Semi transparent dark overlay
+    overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+    overlay.set_alpha(220)
+    overlay.fill((5, 4, 3))
+    screen.blit(overlay, (0, 0))
+
+    # Panel dimensions
+    panel_w = 500
+    panel_h = 480
+    panel_x = (WINDOW_WIDTH  - panel_w) // 2
+    panel_y = (WINDOW_HEIGHT - panel_h) // 2
+
+    # Panel background
+    pygame.draw.rect(screen, (12, 10, 8),
+                     pygame.Rect(panel_x, panel_y, panel_w, panel_h))
+    pygame.draw.rect(screen, COL_BORDER,
+                     pygame.Rect(panel_x, panel_y, panel_w, panel_h), 1)
+
+    # Title
+    title = font.render("INVENTORY", True, COL_TITLE)
+    screen.blit(title, (panel_x + 16, panel_y + 14))
+
+    # Cap indicator
+    cap = font_small.render(
+        f"{len(player.inventory)} / {player.inventory_cap} slots",
+        True, COL_TEXT_DIM
+    )
+    screen.blit(cap, (panel_x + panel_w - cap.get_width() - 16, panel_y + 16))
+
+    # Divider
+    pygame.draw.line(screen, COL_BORDER,
+                     (panel_x, panel_y + 36),
+                     (panel_x + panel_w, panel_y + 36), 1)
+
+    # Item list — left side
+    list_x    = panel_x + 16
+    list_y    = panel_y + 46
+    item_h    = 22
+    max_items = 14
+
+    SLOT_COLOURS = {
+        "weapon":     (180, 160, 80),
+        "armor":      (80,  120, 180),
+        "consumable": (180, 80,  80),
+        "material":   (120, 120, 120),
+        "story":      (80,  180, 120),
+    }
+
+    for i, item in enumerate(player.inventory[:max_items]):
+        item_y  = list_y + i * item_h
+        colour  = SLOT_COLOURS.get(item.category, (120, 120, 120))
+
+        # Highlight selected item
+        if i == selected_index:
+            pygame.draw.rect(screen, (30, 25, 20),
+                             pygame.Rect(list_x - 4, item_y - 2,
+                                        panel_w // 2, item_h))
+            pygame.draw.rect(screen, COL_BORDER,
+                             pygame.Rect(list_x - 4, item_y - 2,
+                                        panel_w // 2, item_h), 1)
+
+        # Colour dot
+        pygame.draw.rect(screen, colour,
+                         pygame.Rect(list_x, item_y + 4, 8, 8))
+
+        # Check if item is equipped
+        equipped_slots = player.equipped.values()
+        is_equipped    = item in equipped_slots
+
+        # Item name
+        name_col = COL_TEXT_BRIGHT if i == selected_index else COL_TEXT_MID
+        name     = font_small.render(item.display_name(), True, name_col)
+        screen.blit(name, (list_x + 14, item_y + 2))
+
+        # Show [E] tag if equipped
+        if is_equipped:
+            tag = font_small.render("[E]", True, COL_GOLD)
+            screen.blit(tag, (list_x + 14 + name.get_width() + 6, item_y + 2))
+
+        # Quantity for consumables
+        if item.category == "consumable" and item.quantity > 1:
+            qty = font_small.render(f"x{item.quantity}", True, COL_TEXT_DIM)
+            screen.blit(qty, (list_x + 14 + name.get_width() + 6, item_y + 2))
+
+    # Empty slots
+    for i in range(len(player.inventory), min(max_items, player.inventory_cap)):
+        item_y = list_y + i * item_h
+        empty  = font_small.render("---", True, (35, 30, 25))
+        screen.blit(empty, (list_x + 14, item_y + 2))
+
+    # Divider between list and detail panel
+    detail_x = panel_x + panel_w // 2 + 8
+    pygame.draw.line(screen, COL_BORDER,
+                     (detail_x - 8, panel_y + 36),
+                     (detail_x - 8, panel_y + panel_h - 40), 1)
+
+    # Detail panel — right side
+    if player.inventory and 0 <= selected_index < len(player.inventory):
+        item = player.inventory[selected_index]
+        dy   = panel_y + 46
+
+        # Item name
+        name = font.render(item.display_name(), True, COL_TEXT_BRIGHT)
+        screen.blit(name, (detail_x, dy))
+        dy += 24
+
+        # Rarity
+        rarity_colours = {
+            "common":    COL_TEXT_DIM,
+            "uncommon":  (90, 140, 210),
+            "rare":      (180, 80, 180),
+            "legendary": (200, 160, 40),
+        }
+        rarity_col = rarity_colours.get(item.rarity, COL_TEXT_DIM)
+        rarity     = font_small.render(item.rarity.upper(), True, rarity_col)
+        screen.blit(rarity, (detail_x, dy))
+        dy += 20
+
+        # Stats
+        if item.category == "weapon" and item.identified:
+            dmg = font_small.render(
+                f"Damage:  {item.damage_dice}+{item.atk_bonus}",
+                True, COL_ATK
+            )
+            screen.blit(dmg, (detail_x, dy))
+            dy += 18
+
+        elif item.category == "armor" and item.identified:
+            def_val = font_small.render(
+                f"Defence: +{item.def_bonus}",
+                True, COL_DEF
+            )
+            screen.blit(def_val, (detail_x, dy))
+            dy += 18
+
+        elif item.category == "consumable" and item.identified:
+            eff = font_small.render(
+                f"Effect:  {item.effect} {item.effect_value}",
+                True, COL_HP_TEXT
+            )
+            screen.blit(eff, (detail_x, dy))
+            dy += 18
+
+        # Lore
+        if item.lore and item.identified:
+            dy += 8
+            lore_words = item.lore.split()
+            line       = ""
+            max_w      = panel_w // 2 - 24
+
+            for word in lore_words:
+                test = f"{line} {word}".strip()
+                if font_small.size(test)[0] <= max_w:
+                    line = test
+                else:
+                    lore_surf = font_small.render(line, True, COL_TEXT_DIM)
+                    screen.blit(lore_surf, (detail_x, dy))
+                    dy  += 15
+                    line = word
+            if line:
+                screen.blit(
+                    font_small.render(line, True, COL_TEXT_DIM),
+                    (detail_x, dy)
+                )
+
+    # Controls at bottom
+    controls_y = panel_y + panel_h - 30
+    pygame.draw.line(screen, COL_BORDER,
+                     (panel_x, controls_y - 6),
+                     (panel_x + panel_w, controls_y - 6), 1)
+
+    controls = [
+        ("U", "Use"),
+        ("E", "Equip"),
+        ("D", "Drop"),
+        ("ESC", "Close"),
+    ]
+
+    cx = panel_x + 16
+    for key, action in controls:
+        key_surf = font_small.render(f"[{key}]", True, COL_TITLE)
+        act_surf = font_small.render(f" {action}", True, COL_TEXT_DIM)
+        screen.blit(key_surf, (cx, controls_y))
+        screen.blit(act_surf, (cx + key_surf.get_width(), controls_y))
+        cx += key_surf.get_width() + act_surf.get_width() + 16
