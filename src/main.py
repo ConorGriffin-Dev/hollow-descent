@@ -8,7 +8,8 @@ from engine.constants import (
 from engine.renderer import (
     draw_room, draw_sidebar, draw_message_log,
     draw_room_header, draw_game_over, draw_floor_items,
-    draw_inventory_screen, draw_start_screen
+    draw_inventory_screen, draw_start_screen,
+    draw_merchant_screen
 )
 from engine.game_state import GameState
 from engine.constants import COL_BORDER, COL_TEXT_DIM, COL_TEXT_MID, COL_TITLE
@@ -105,6 +106,39 @@ def handle_input(event, game_state):
         open_chest(game_state)
         return
 
+    # ── Merchant open/close ───────────────────────────────────────
+    if event.key == pygame.K_m:
+        room     = game_state.current_floor.get_current_room()
+        merchant = room.special_state.get("merchant")
+        if merchant:
+            game_state.merchant_open     = not game_state.merchant_open
+            game_state.merchant_selected = 0
+        return
+
+    # ── Merchant navigation and buying ────────────────────────────
+    if game_state.merchant_open:
+        room     = game_state.current_floor.get_current_room()
+        merchant = room.special_state.get("merchant")
+
+        if not merchant:
+            game_state.merchant_open = False
+            return
+
+        if event.key == pygame.K_UP:
+            game_state.merchant_selected = max(
+                0, game_state.merchant_selected - 1
+            )
+        elif event.key == pygame.K_DOWN:
+            game_state.merchant_selected = min(
+                len(merchant.stock) - 1,
+                game_state.merchant_selected + 1
+            )
+        elif event.key == pygame.K_ESCAPE:
+            game_state.merchant_open = False
+        elif event.key == pygame.K_b:
+            buy_item(game_state, merchant)
+        return
+
     if event.key not in direction_map:
         return
     
@@ -176,6 +210,7 @@ def handle_input(event, game_state):
             check_staircase(game_state)
             check_item_pickup(game_state)
             check_chest_interaction(game_state)
+            check_merchant_interaction(game_state)
             
     # ── Enemy turns ───────────────────────────────────────────────
     if game_state.game_phase != "game_over":
@@ -478,6 +513,67 @@ def open_chest(game_state):
             return
 
     game_state.add_message("Nothing to open here.")
+    
+def check_merchant_interaction(game_state):
+    """
+    Checks if Vincent is adjacent to the merchant.
+    If so prompts the player to press M to open the shop.
+    """
+    player = game_state.player
+    room   = game_state.current_floor.get_current_room()
+    merchant = room.special_state.get("merchant")
+
+    if not merchant:
+        return
+
+    distance = max(
+        abs(player.col - merchant.col),
+        abs(player.row - merchant.row)
+    )
+
+    if distance <= 1:
+        game_state.add_message("A merchant. Press M to trade.")    
+        
+def buy_item(game_state, merchant):
+    """
+    Purchases the selected item from the merchant.
+    Checks player gold and inventory space before buying.
+    Removes item from merchant stock on purchase.
+    """
+    player = game_state.player
+    idx    = game_state.merchant_selected
+
+    if idx >= len(merchant.stock):
+        return
+
+    item, price = merchant.stock[idx]
+
+    # Check gold
+    if player.gold < price:
+        game_state.add_message(
+            f"You need {price}g. You only have {player.gold}g."
+        )
+        return
+
+    # Check inventory space
+    if len(player.inventory) >= player.inventory_cap:
+        game_state.add_message("Your inventory is full.")
+        return
+
+    # Complete purchase
+    player.gold     -= price
+    player.inventory.append(item)
+    merchant.stock.pop(idx)
+
+    game_state.add_message(
+        f"You buy {item.display_name()} for {price}g."
+    )
+
+    # Adjust selected index
+    game_state.merchant_selected = min(
+        game_state.merchant_selected,
+        len(merchant.stock) - 1
+    )        
 
 def pickup_item(game_state):
     """
@@ -758,6 +854,8 @@ def main():
 
             draw_room(screen, current_room)
             draw_floor_items(screen, current_room)
+            if "merchant" in current_room.special_state:
+                current_room.special_state["merchant"].draw(screen)
             for enemy in current_room.enemies:
                 enemy.draw(screen)
             game_state.player.draw(screen)
@@ -780,6 +878,17 @@ def main():
                     game_state.player,
                     game_state.inventory_selected
                 )
+                
+            if game_state.merchant_open:
+                room     = game_state.current_floor.get_current_room()
+                merchant = room.special_state.get("merchant")
+                if merchant:
+                    draw_merchant_screen(
+                        screen, font, font_small,
+                        merchant,
+                        game_state.player.gold,
+                        game_state.merchant_selected
+                    )    
         pygame.display.flip()
         clock.tick(FPS)
 

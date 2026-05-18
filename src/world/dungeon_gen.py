@@ -3,6 +3,7 @@ from world.tile import WALL, FLOOR, STAIRCASE_DOWN, STAIRCASE_UP
 from world.room import Room, Exit
 from world.floor import Floor, GateRequirement
 from entities.enemy import make_goblin, make_rat
+from entities.npc import Merchant, generate_merchant_stock
 
 # Room size bounds in tiles
 ROOM_MIN_W = 8
@@ -85,6 +86,7 @@ def generate_floor(floor_number, seed):
         if room_id != start_id:   # no enemies in start room
             spawn_enemies(room, floor_number, rng)
             place_chests(room, floor_number, rng)
+            place_merchant(room, floor_number, rng)
 
     # ── Step 5: Place staircases ──────────────────────────────────
     place_staircase(rooms[start_id],     "staircase_up")
@@ -353,3 +355,20 @@ def place_chests(room, floor_number, rng):
             "row":    row,
             "opened": False,
         }        
+        
+def place_merchant(room, floor_number, rng):
+    """
+    Places a merchant NPC in the centre of a merchant room.
+    Generates stock appropriate to the floor depth.
+    """
+    if room.room_type != "merchant":
+        return
+
+    centre_col = room.width  // 2
+    centre_row = room.height // 2
+
+    merchant       = Merchant(col=centre_col, row=centre_row)
+    merchant.stock = generate_merchant_stock(floor_number)
+
+    # Store merchant in room special state
+    room.special_state["merchant"] = merchant        

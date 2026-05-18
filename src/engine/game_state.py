@@ -38,6 +38,10 @@ class GameState:
     inventory_open: bool = False
     inventory_selected: int = 0    # currently highlighted slot index
 
+    # Merchant screen state
+    merchant_open: bool = False
+    merchant_selected: int = 0
+
     def add_message(self, text):
         """Appends a general message to the log."""
         self.messages.append(text)

@@ -568,7 +568,106 @@ def draw_game_over(screen, font, font_small):
     inst = font_small.render(
         "Press ESC to quit.", True, (60, 40, 40)
     )
-    screen.blit(inst, (cx - inst.get_width() // 2, cy + 20))  
+    screen.blit(inst, (cx - inst.get_width() // 2, cy + 20)) 
+    
+def draw_merchant_screen(screen, font, font_small, merchant, player_gold, selected_index):
+    """
+    Draws the merchant shop overlay.
+    Shows merchant stock with prices.
+    Player navigates with arrow keys and presses B to buy.
+    """
+    # Dark overlay
+    overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+    overlay.set_alpha(220)
+    overlay.fill((3, 4, 8))
+    screen.blit(overlay, (0, 0))
+
+    # Panel
+    panel_w = 500
+    panel_h = 420
+    panel_x = (WINDOW_WIDTH  - panel_w) // 2
+    panel_y = (WINDOW_HEIGHT - panel_h) // 2
+
+    pygame.draw.rect(screen, (8, 10, 18),
+                     pygame.Rect(panel_x, panel_y, panel_w, panel_h))
+    pygame.draw.rect(screen, (55, 70, 100),
+                     pygame.Rect(panel_x, panel_y, panel_w, panel_h), 1)
+
+    # Title
+    title = font.render("THE MERCHANT", True, (90, 120, 180))
+    screen.blit(title, (panel_x + 16, panel_y + 14))
+
+    # Player gold
+    gold = font_small.render(
+        f"Your gold:  {player_gold}",
+        True, COL_GOLD
+    )
+    screen.blit(gold, (panel_x + panel_w - gold.get_width() - 16, panel_y + 16))
+
+    # Divider
+    pygame.draw.line(screen, (55, 70, 100),
+                     (panel_x, panel_y + 36),
+                     (panel_x + panel_w, panel_y + 36), 1)
+
+    # Stock list
+    list_x = panel_x + 16
+    list_y = panel_y + 46
+    item_h = 28
+
+    SLOT_COLOURS = {
+        "weapon":     (180, 160, 80),
+        "armor":      (80,  120, 180),
+        "consumable": (180, 80,  80),
+        "material":   (120, 120, 120),
+    }
+
+    for i, (item, price) in enumerate(merchant.stock):
+        item_y = list_y + i * item_h
+        colour = SLOT_COLOURS.get(item.category, (120, 120, 120))
+
+        # Highlight selected
+        if i == selected_index:
+            pygame.draw.rect(screen, (20, 25, 40),
+                             pygame.Rect(list_x - 4, item_y - 2,
+                                        panel_w - 20, item_h))
+            pygame.draw.rect(screen, (55, 70, 100),
+                             pygame.Rect(list_x - 4, item_y - 2,
+                                        panel_w - 20, item_h), 1)
+
+        # Colour dot
+        pygame.draw.rect(screen, colour,
+                         pygame.Rect(list_x, item_y + 8, 8, 8))
+
+        # Item name
+        can_afford = player_gold >= price
+        name_col   = COL_TEXT_BRIGHT if i == selected_index else COL_TEXT_MID
+        name       = font_small.render(item.display_name(), True, name_col)
+        screen.blit(name, (list_x + 14, item_y + 6))
+
+        # Short desc
+        desc = font_small.render(item.short_desc(), True, COL_TEXT_DIM)
+        screen.blit(desc, (list_x + 14, item_y + 18))
+
+        # Price
+        price_col = COL_GOLD if can_afford else (120, 60, 60)
+        price_txt = font_small.render(f"{price}g", True, price_col)
+        screen.blit(price_txt,
+                    (panel_x + panel_w - price_txt.get_width() - 16, item_y + 8))
+
+    # Controls
+    controls_y = panel_y + panel_h - 30
+    pygame.draw.line(screen, (55, 70, 100),
+                     (panel_x, controls_y - 6),
+                     (panel_x + panel_w, controls_y - 6), 1)
+
+    for key, action, cx in [
+        ("B", "Buy",   panel_x + 16),
+        ("ESC", "Leave", panel_x + 80),
+    ]:
+        key_surf = font_small.render(f"[{key}]", True, (90, 120, 180))
+        act_surf = font_small.render(f" {action}", True, COL_TEXT_DIM)
+        screen.blit(key_surf, (cx, controls_y))
+        screen.blit(act_surf, (cx + key_surf.get_width(), controls_y)) 
     
 def draw_start_screen(screen, font, font_small, has_save):
     """
