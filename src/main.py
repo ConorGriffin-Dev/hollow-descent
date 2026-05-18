@@ -5,6 +5,7 @@ from engine.constants import (
     ROOM_WIDTH, ROOM_HEIGHT, ROOM_COLS, ROOM_ROWS,
     COL_BACKGROUND
 )
+from systems.save_system import save_game, load_game, save_exists
 from engine.renderer import draw_room, draw_sidebar, draw_message_log
 from engine.game_state import GameState
 from entities.player import Player
@@ -49,6 +50,12 @@ def handle_input(event, game_state):
         pygame.K_d:     (1,   0),
         pygame.K_RIGHT: (1,   0),
     }
+    
+    # ── Save game ─────────────────────────────────────────────────
+    if event.key == pygame.K_F5:
+        save_game(game_state)
+        game_state.add_message("Game saved.")
+        return
 
 # ── Inventory open/close ──────────────────────────────────────
     if event.key == pygame.K_i:
@@ -285,36 +292,32 @@ def check_room_transition(game_state):
 def check_staircase(game_state):
     """
     Checks if Vincent is standing on a staircase tile.
-    If on a descending staircase — generates and transitions to next floor.
-    If on an ascending staircase — loads the previous floor from cache.
-    Gate requirement must be satisfied before descending.
+    Descending generates or loads the next floor.
+    Ascending loads the previous floor from cache.
     """
     player = game_state.player
     floor  = game_state.current_floor
     room   = floor.get_current_room()
 
-    # Get the tile Vincent is standing on
     current_tile = room.get_tile(player.col, player.row)
 
     if current_tile.type == "staircase_down":
-        # Check gate requirement
         if not floor.gate_requirement.satisfied:
             game_state.add_message(
                 "The way down is sealed. You must prove your worth."
             )
             return
 
-        # Cache current floor state before leaving
+        # Cache current floor
         game_state.floor_cache[floor.number] = floor
 
         next_floor_number = floor.number + 1
 
         if next_floor_number > 10:
-            # Reached beyond floor 10 — game complete placeholder
             game_state.add_message("You have reached the depths. Victory!")
             return
 
-        # Generate next floor if not visited before
+        # Load from cache or generate fresh
         if next_floor_number in game_state.floor_cache:
             next_floor = game_state.floor_cache[next_floor_number]
         else:
@@ -323,19 +326,17 @@ def check_staircase(game_state):
                 seed         = game_state.run_seed
             )
 
-        # Transition to next floor
-        game_state.current_floor = next_floor
+        # Transition
+        game_state.current_floor        = next_floor
         game_state.player.current_floor = next_floor_number
 
-        # Place Vincent at the start room of the new floor
         start_room         = next_floor.get_current_room()
         start_room.visited = True
         player.col         = start_room.width  // 2
         player.row         = start_room.height // 2
 
-        game_state.add_message(
-            f"You descend to floor {next_floor_number}."
-        )
+        game_state.add_message(f"You descend to floor {next_floor_number}.")
+        save_game(game_state)
 
     elif current_tile.type == "staircase_up":
         if floor.number == 1:
@@ -354,19 +355,17 @@ def check_staircase(game_state):
             game_state.add_message("You cannot go back.")
             return
 
-        # Transition to previous floor
+        # Transition
         game_state.current_floor        = prev_floor
         game_state.player.current_floor = prev_floor_number
 
-        # Place Vincent at the staircase_down room of the previous floor
-        staircase_room = prev_floor.rooms[prev_floor.staircase_room_id]
+        staircase_room                 = prev_floor.rooms[prev_floor.staircase_room_id]
         prev_floor.player_current_room = prev_floor.staircase_room_id
-        player.col = staircase_room.width  // 2
-        player.row = staircase_room.height // 2
+        player.col                     = staircase_room.width  // 2
+        player.row                     = staircase_room.height // 2
 
-        game_state.add_message(
-            f"You ascend to floor {prev_floor_number}."
-        )
+        game_state.add_message(f"You ascend to floor {prev_floor_number}.")
+        
         
 def check_item_pickup(game_state):
     """
@@ -588,36 +587,36 @@ def main():
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption(TITLE)
 
-    clock = pygame.time.Clock()
-
-    # Fonts
+    clock      = pygame.time.Clock()
     font       = pygame.font.SysFont("Courier New", 13)
     font_small = pygame.font.SysFont("Courier New", 11)
 
-    # Generate floor 1
-    floor = generate_floor(floor_number=1, seed=42)
+    # Check for existing save file
+    if save_exists():
+        game_state = load_game()
+        game_state.add_message("Save file loaded. Welcome back.")
+    else:
+        # Fresh run
+        floor  = generate_floor(floor_number=1, seed=42)
+        player = Player(col=1, row=1)
 
-    # Initialise player at the start room centre
-    start_room = floor.get_current_room()
-    player     = Player(col=start_room.width // 2, row=start_room.height // 2)
+        game_state = GameState(
+            player        = player,
+            current_floor = floor,
+            run_seed      = 42,
+        )
 
-    # Initialise GameState
-    game_state = GameState(
-        player        = player,
-        current_floor = floor,
-        run_seed      = 42,
-    )
+        start_room             = floor.get_current_room()
+        start_room.visited     = True
+        start_room.first_visit = False
+        player.col             = start_room.width  // 2
+        player.row             = start_room.height // 2
 
-    # Mark start room as visited
-    start_room.visited     = True
-    start_room.first_visit = False
-
-    # Starting messages
-    game_state.add_message("You descend into the Underspire.")
-    game_state.add_message(f"You stand in {start_room.name}.")
-    game_state.set_story_message(
-        "The door behind you is gone. Only the dark remains."
-    )
+        game_state.add_message("You descend into the Underspire.")
+        game_state.add_message(f"You stand in {start_room.name}.")
+        game_state.set_story_message(
+            "The door behind you is gone. Only the dark remains."
+        )
 
     while True:
         for event in pygame.event.get():

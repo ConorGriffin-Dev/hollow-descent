@@ -219,6 +219,8 @@ def draw_sidebar(screen, font, font_small, player_data, floor, current_room_id):
         )
 
     # ── Minimap ────────────────────────────────────────────────────
+    draw_divider()
+
     draw_text("MAP", COL_TEXT_DIM, small=True)
     y += 4
 
