@@ -567,6 +567,45 @@ def draw_game_over(screen, font, font_small):
     )
     screen.blit(inst, (cx - inst.get_width() // 2, cy + 20))  
     
+def draw_start_screen(screen, font, font_small, has_save):
+    """
+    Draws the start screen.
+    New game and continue options.
+    Continue only shown if save file exists.
+    """
+    screen.fill((5, 4, 3))
+
+    cx = WINDOW_WIDTH  // 2
+    cy = WINDOW_HEIGHT // 2
+
+    # Title
+    title = font.render("THE HOLLOW DESCENT", True, COL_TITLE)
+    screen.blit(title, (cx - title.get_width() // 2, cy - 120))
+
+    # Subtitle
+    sub = font_small.render(
+        "A darkness waits beneath the earth.", True, COL_TEXT_DIM
+    )
+    screen.blit(sub, (cx - sub.get_width() // 2, cy - 90))
+
+    # Divider
+    pygame.draw.line(
+        screen, COL_BORDER,
+        (cx - 100, cy - 70),
+        (cx + 100, cy - 70), 1
+    )
+
+    # Options
+    new_game = font.render("[N]  New Game", True, COL_TEXT_MID)
+    screen.blit(new_game, (cx - new_game.get_width() // 2, cy - 50))
+
+    if has_save:
+        cont = font.render("[C]  Continue", True, COL_TEXT_MID)
+        screen.blit(cont, (cx - cont.get_width() // 2, cy - 20))
+
+    quit_opt = font.render("[ESC]  Quit", True, COL_TEXT_DIM)
+    screen.blit(quit_opt, (cx - quit_opt.get_width() // 2, cy + 20))
+    
 def draw_inventory_screen(screen, font, font_small, player, selected_index):
     """
     Draws a full inventory overlay screen.

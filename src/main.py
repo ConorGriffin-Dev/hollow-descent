@@ -5,19 +5,18 @@ from engine.constants import (
     ROOM_WIDTH, ROOM_HEIGHT, ROOM_COLS, ROOM_ROWS,
     COL_BACKGROUND
 )
-from systems.save_system import save_game, load_game, save_exists
-from engine.renderer import draw_room, draw_sidebar, draw_message_log
-from engine.game_state import GameState
-from entities.player import Player
-from entities.behaviors import take_enemy_turn
-from world.dungeon_gen import generate_floor
-from engine.renderer import draw_room, draw_sidebar, draw_message_log, draw_room_header
-from systems.combat import resolve_player_attack, resolve_enemy_attack, check_level_up
 from engine.renderer import (
     draw_room, draw_sidebar, draw_message_log,
     draw_room_header, draw_game_over, draw_floor_items,
-    draw_inventory_screen
+    draw_inventory_screen, draw_start_screen
 )
+from engine.game_state import GameState
+from engine.constants import COL_BORDER, COL_TEXT_DIM, COL_TEXT_MID, COL_TITLE
+from systems.save_system import save_game, load_game, save_exists
+from entities.player import Player
+from entities.behaviors import take_enemy_turn
+from world.dungeon_gen import generate_floor
+from systems.combat import resolve_player_attack, resolve_enemy_attack, check_level_up
 
 
 
@@ -591,39 +590,61 @@ def main():
     font       = pygame.font.SysFont("Courier New", 13)
     font_small = pygame.font.SysFont("Courier New", 11)
 
-    # Check for existing save file
-    if save_exists():
-        game_state = load_game()
-        game_state.add_message("Save file loaded. Welcome back.")
-    else:
-        # Fresh run
-        floor  = generate_floor(floor_number=1, seed=42)
-        player = Player(col=1, row=1)
+    # ── Start screen loop ─────────────────────────────────────────
+    has_save   = save_exists()
+    game_state = None
 
-        game_state = GameState(
-            player        = player,
-            current_floor = floor,
-            run_seed      = 42,
-        )
+    while game_state is None:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
-        start_room             = floor.get_current_room()
-        start_room.visited     = True
-        start_room.first_visit = False
-        player.col             = start_room.width  // 2
-        player.row             = start_room.height // 2
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
 
-        game_state.add_message("You descend into the Underspire.")
-        game_state.add_message(f"You stand in {start_room.name}.")
-        game_state.set_story_message(
-            "The door behind you is gone. Only the dark remains."
-        )
+                elif event.key == pygame.K_n:
+                    # New game — random seed
+                    import random as _random
+                    run_seed = _random.randint(0, 999999)
+                    floor    = generate_floor(floor_number=1, seed=run_seed)
+                    player   = Player(col=1, row=1)
 
+                    game_state = GameState(
+                        player        = player,
+                        current_floor = floor,
+                        run_seed      = run_seed,
+                    )
+
+                    start_room             = floor.get_current_room()
+                    start_room.visited     = True
+                    start_room.first_visit = False
+                    player.col             = start_room.width  // 2
+                    player.row             = start_room.height // 2
+
+                    game_state.add_message("You descend into the Underspire.")
+                    game_state.add_message(f"You stand in {start_room.name}.")
+                    game_state.set_story_message(
+                        "The door behind you is gone. Only the dark remains."
+                    )
+
+                elif event.key == pygame.K_c and has_save:
+                    # Load existing save
+                    game_state = load_game()
+                    game_state.add_message("Welcome back.")
+
+        draw_start_screen(screen, font, font_small, has_save)
+        pygame.display.flip()
+        clock.tick(FPS)
+
+    # ── Main game loop ────────────────────────────────────────────
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            # ESC quits from the game over screen
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     if game_state.game_phase == "game_over":
@@ -634,31 +655,28 @@ def main():
         screen.fill(COL_BACKGROUND)
 
         if game_state.game_phase == "game_over":
-            # Show game over screen instead of normal game
             draw_game_over(screen, font, font_small)
         else:
-            # Normal game rendering
             current_room = game_state.current_floor.get_current_room()
 
             draw_room(screen, current_room)
-            draw_floor_items(screen, current_room) 
+            draw_floor_items(screen, current_room)
             for enemy in current_room.enemies:
                 enemy.draw(screen)
             game_state.player.draw(screen)
             draw_room_header(screen, font, current_room)
             draw_sidebar(
-            screen, font, font_small,
-            game_state.player.to_sidebar_dict(game_state.current_floor),
-            game_state.current_floor,
-            game_state.current_floor.player_current_room
-        )
+                screen, font, font_small,
+                game_state.player.to_sidebar_dict(game_state.current_floor),
+                game_state.current_floor,
+                game_state.current_floor.player_current_room
+            )
             draw_message_log(
                 screen, font, font_small,
                 game_state.messages,
                 game_state.story_message
             )
-            
-            # Draw inventory overlay on top if open
+
             if game_state.inventory_open:
                 draw_inventory_screen(
                     screen, font, font_small,
@@ -668,6 +686,11 @@ def main():
 
         pygame.display.flip()
         clock.tick(FPS)
-
+        
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        input("Press Enter to exit...")       
