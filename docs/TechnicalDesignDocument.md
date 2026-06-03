@@ -1,32 +1,30 @@
-The Hollow Descent — Technical Design Document
+# The Hollow Descent — Technical Design Document
 
-Architecture Overview
+## Architecture Overview
 
 The game is separated into distinct layers. Each layer has one
 responsibility and communicates only through GameState.
 
-```
 main.py
-   │
-   ├── GameLoop
-   │      ├── InputHandler        reads keypress, returns Action
-   │      ├── ActionResolver      takes Action, updates GameState
-   │      └── Renderer            reads GameState, draws via Pygame
-   │
-   ├── GameState                  single source of truth
-   │      ├── Player
-   │      ├── CurrentFloor
-   │      └── FloorCache
-   │
-   └── Systems
-          ├── DungeonGenerator
-          ├── CombatSystem
-          ├── PathfindingSystem
-          ├── LootSystem
-          ├── GateSystem
-          ├── AnimationSystem
-          └── SaveSystem
-```
+│
+├── GameLoop
+│      ├── InputHandler        reads keypress, returns Action
+│      ├── ActionResolver      takes Action, updates GameState
+│      └── Renderer            reads GameState, draws via Pygame
+│
+├── GameState                  single source of truth
+│      ├── Player
+│      ├── CurrentFloor
+│      └── FloorCache
+│
+└── Systems
+├── DungeonGenerator
+├── CombatSystem
+├── PathfindingSystem
+├── LootSystem
+├── GateSystem
+├── AnimationSystem
+└── SaveSystem
 
 Core principle: GameState is the single source of truth. Every system
 reads from and writes to GameState only. The Renderer reads GameState and
@@ -34,23 +32,22 @@ draws. It never modifies anything.
 
 ---
 
-Technology Stack
+## Technology Stack
 
 | Property | Value |
 |----------|-------|
-| Language | Python 3.11+ |
+| Language | Python 3.13 |
 | Renderer | Pygame 2.x |
 | Tile Size | 32×32 pixels |
 | Asset Format | PNG spritesheets |
 | Testing | pytest |
 | Version Control | Git + GitHub |
 | Save Format | JSON |
+| Distribution | PyInstaller |
 
 ---
 
-Folder Structure
-
-```
+## Folder Structure
 hollow-descent/
 │
 ├── docs/
@@ -62,15 +59,16 @@ hollow-descent/
 │   ├── main.py
 │   │
 │   ├── engine/
-│   │   ├── __init__.py
+│   │   ├── init.py
 │   │   ├── game_loop.py
 │   │   ├── game_state.py
 │   │   ├── input_handler.py
 │   │   ├── action_resolver.py
-│   │   └── renderer.py
+│   │   ├── renderer.py
+│   │   └── constants.py
 │   │
 │   ├── world/
-│   │   ├── __init__.py
+│   │   ├── init.py
 │   │   ├── floor.py
 │   │   ├── room.py
 │   │   ├── tile.py
@@ -79,19 +77,19 @@ hollow-descent/
 │   │   └── gate_system.py
 │   │
 │   ├── entities/
-│   │   ├── __init__.py
+│   │   ├── init.py
 │   │   ├── player.py
 │   │   ├── enemy.py
 │   │   ├── behaviors.py
 │   │   └── npc.py
 │   │
 │   ├── systems/
-│   │   ├── __init__.py
+│   │   ├── init.py
 │   │   ├── combat.py
 │   │   ├── pathfinding.py
 │   │   ├── inventory.py
 │   │   ├── loot.py
-│   │   ├── magic.py
+│   │   ├── enhancements.py
 │   │   ├── animation.py
 │   │   └── save_system.py
 │   │
@@ -117,23 +115,22 @@ hollow-descent/
 ├── requirements.txt
 ├── README.md
 └── LICENSE
-```
 
 ---
 
-Data Structures
+## Data Structures
 
- Tile
+### Tile
 ```python
 @dataclass
 class Tile:
-    type: str           # "wall" "floor" "door" "exit" "staircase"
-    sprite_key: str     # key into sprite atlas
+    type: str           # "wall" "floor" "door" "staircase_down"
+                        # "staircase_up" "chest_closed" "chest_open"
     walkable: bool
     blocks_sight: bool
 ```
 
- Exit
+### Exit
 ```python
 @dataclass
 class Exit:
@@ -142,28 +139,28 @@ class Exit:
     discovered: bool = False
 ```
 
- Room
+### Room
 ```python
 @dataclass
 class Room:
     id: str
     name: str
     description: str
-    room_type: str      # "standard" "corridor" "chamber" etc
+    room_type: str      # "standard" "chamber" "merchant" "secret"
+                        # "trap" "sanctuary" "boss_arena"
     width: int
     height: int
     tiles: List[List[Tile]]
     exits: List[Exit]
     enemies: List[Enemy]
     items: List[Item]
-    story_item: Optional[StoryItem]
     visited: bool = False
     first_visit: bool = True
     enemies_cleared: bool = False
     special_state: Dict = field(default_factory=dict)
 ```
 
- Floor
+### Floor
 ```python
 @dataclass
 class Floor:
@@ -176,7 +173,7 @@ class Floor:
     player_current_room: str
 ```
 
- GateRequirement
+### GateRequirement
 ```python
 @dataclass
 class GateRequirement:
@@ -189,7 +186,7 @@ class GateRequirement:
     satisfied: bool = False
 ```
 
- Player
+### Player
 ```python
 @dataclass
 class Player:
@@ -202,155 +199,215 @@ class Player:
     spd: int = 10
     lck: int = 5
     xp: int = 0
-    xp_to_next: int = 100
+    xp_next: int = 100
     gold: int = 0
-    position: Tuple[int, int] = (0, 0)
-    current_room_id: str = ""
+    col: int = 1
+    row: int = 1
     current_floor: int = 1
     inventory: List[Item] = field(default_factory=list)
     inventory_cap: int = 12
     equipped: Dict[str, Optional[Item]] = field(default_factory=dict)
-    story_items: List[StoryItem] = field(default_factory=list)
+    story_items: List[Item] = field(default_factory=list)
     abilities: List[str] = field(default_factory=list)
-    oaths_sworn: List[str] = field(default_factory=list)
+    enhancements: List[str] = field(default_factory=list)
     playstyle_counters: Dict[str, int] = field(default_factory=dict)
-    status_effects: List[StatusEffect] = field(default_factory=list)
+    status_effects: List = field(default_factory=list)
 ```
 
- Enemy
+### Enemy
 ```python
 @dataclass
 class Enemy:
     id: str
     name: str
-    sprite_key: str
+    enemy_type: str     # see Enemy Type System below
     hp: int
     max_hp: int
     atk: int
     def_: int
     spd: int
     xp_reward: int
-    drop_table: List[DropEntry]
-    behavior: str       # "aggressive" "ranged" "patrol" etc
-    position: Tuple[int, int] = (0, 0)
+    col: int = 0
+    row: int = 0
     alive: bool = True
+    behavior: str       # "aggressive" "ranged" "patrol" etc
+    behavior_state: Dict = field(default_factory=dict)
     special_ability: Optional[str] = None
     ability_cooldown: int = 0
-    behavior_state: Dict = field(default_factory=dict)
+    drop_table: List = field(default_factory=list)
 ```
 
- Item
+### Boss (extends Enemy)
+```python
+@dataclass
+class Boss(Enemy):
+    phase: int = 1
+    phase_thresholds: List[int] = field(default_factory=list)
+    # HP values at which the boss changes phase, e.g. [200, 100]
+
+    def update_phase(self):
+        """Returns True if a phase threshold was crossed this hit."""
+        for i, threshold in enumerate(self.phase_thresholds):
+            if self.hp <= threshold and self.phase <= i + 1:
+                self.phase = i + 2
+                return True
+        return False
+```
+
+### Item
 ```python
 @dataclass
 class Item:
     id: str
     true_name: str
     mystery_name: str
-    category: str       # "weapon" "armor" "consumable" "material"
+    category: str       # "weapon" "armor" "consumable"
+                        # "material" "story"
     identified: bool = False
     rarity: str = "common"
-    stats: Dict = field(default_factory=dict)
-    effect: Optional[str] = None
+    quantity: int = 1
     cursed: bool = False
     lore: str = ""
-    quantity: int = 1
+    damage_dice: str = ""
+    atk_bonus: int = 0
+    def_bonus: int = 0
+    slot: str = ""
+    effect: str = ""
+    effect_value: int = 0
+    is_story_item: bool = False
+    floor_col: int = 0
+    floor_row: int = 0
 ```
 
- StoryItem
-```python
-@dataclass
-class StoryItem:
-    id: str
-    name: str
-    description: str
-    floor_found: int
-    lore: str
-    gameplay_effect: str
-    collected: bool = False
-    counts_toward_cap: bool = True
-    # counts_toward_cap becomes False after second oath
-```
-
- GameState
+### GameState
 ```python
 @dataclass
 class GameState:
     player: Player
     current_floor: Floor
     floor_cache: Dict[int, Floor]   # floor_number → Floor
-    run_seed: int
+    run_seed: int = 0
     turn_count: int = 0
     game_phase: str = "exploring"
-    # "exploring" "combat" "merchant" "gate" "transition" "game_over"
-    message_log: List[str] = field(default_factory=list)
+    # "exploring" "combat" "merchant" "gate" "transition"
+    # "story" "game_over"
+    messages: List[str] = field(default_factory=list)
+    story_message: Optional[str] = None
     flags: Dict[str, bool] = field(default_factory=dict)
     # flags tracks story state across the entire run
-    # e.g. flags["journal_found"] = True
-    #      flags["voryn_spoke"] = True
-    #      flags["veil_weakened"] = False
+    # e.g. flags["hologram_found"] = True
+    #      flags["megath_met"] = True
+    #      flags["francis_freed"] = False
+    inventory_open: bool = False
+    inventory_selected: int = 0
+    merchant_open: bool = False
+    merchant_selected: int = 0
 ```
 
 ---
 
-Key Algorithms
+## Enemy Type System
 
- BSP Room Graph Generation
-```
-1. Decide room count for this floor number
-2. Generate guaranteed path from START to STAIRCASE
-3. Branch off main path — dead ends, loops, optional wings
-4. Assign room types to all rooms
-5. Place gate requirement item/trigger in a reachable room
-6. Validate — every room reachable, gate item placeable
-7. If validation fails, regenerate with incremented seed
-```
+Enemies are categorised into tiers that map to floor depth. The
+`enemy_type` field on each Enemy keys into colour, stats, and behaviour.
 
- A* Pathfinding
+| Tier | Enemy Types | Floors |
+|------|-------------|--------|
+| Tier 1 | Bugs & Glitches — feral, mindless corrupted code, starting fodder | 1–2 |
+| Tier 2 | The Flickering (hostile, Aruki-controlled) & low-level Fractured | 3–5 |
+| Tier 3 | The Hollow Guard & named Fractured warriors | 6–8 |
+| Tier 4 | All enemy types converge | 9–10 |
+
+Faction origins of enemy types:
+- **Bugs / Glitches** — corrupted code, no faction, baseline fodder.
+- **The Flickering** — Eternal Court; ensnared, mostly hostile.
+- **The Hollow Guard** — Eternal Court; pure AI muscle, attack on sight.
+- **The Fractured** — The Bound; shattered minds, hostile by instinct, named ones carry backstory.
+- **The Crowned Few** — Eternal Court; boss-tier elite.
+
+### Boss Roster (multi-floor, draft)
+
+| Floor | Boss | Notes |
+|-------|------|-------|
+| 2 | The Swarmcluster | Fused mass of bugs/glitches. Teaches boss mechanics. |
+| 3 | The First Fractured | First named Fractured. Tragic intro. |
+| 4 | Warden of the Flickering | Corrupted Flickering, dark mirror of Luma. |
+| 5 | The Hollowed General | First Hollow Guard commander. |
+| 6 | The Choir of the Fractured | Several named Fractured fought together. |
+| 7 | The Gatekeeper | Massive Hollow Guard construct. |
+| 8 | First Crowned Few | Defeat triggers Aruki's direct manifestation. |
+| 9 | The Crowned Few who took Francis | The father beat. |
+| 10 | Aruki's Avatar / guardian | Final barrier. Full Aruki reserved for sequel. |
+
+Boss assignment is data-driven via a `BOSS_FLOORS` set in the dungeon
+generator. Boss rooms replace the staircase room with a sealed arena.
+Final per-floor boss selection is locked during narrative integration.
+
+---
+
+## Key Algorithms
+
+### Room Graph Generation
+Decide room count for this floor number
+Generate guaranteed path from START to STAIRCASE
+Branch off main path — dead ends, loops, optional wings
+Assign room types to all rooms
+Spawn enemies and place chests/merchants per room
+Place gate requirement item/trigger in a reachable room
+Place staircases
+
+### A* Pathfinding
 Contained entirely within one room's tile grid. Enemies never cross
-room boundaries. Runs per enemy per turn. Room size cap of roughly
-40×20 tiles means near-instant computation even with many enemies.
-
-```
+room boundaries. Runs per enemy per turn. Room size cap means
+near-instant computation even with many enemies.
 open_set    = {start}
 came_from   = {}
 g_score     = {start: 0}
 f_score     = {start: heuristic(start, goal)}
-
 while open_set is not empty:
-    current = node in open_set with lowest f_score
-    if current == goal: return reconstruct_path()
-    for each walkable neighbour:
-        tentative_g = g_score[current] + 1
-        if tentative_g < g_score[neighbour]:
-            came_from[neighbour] = current
-            g_score[neighbour] = tentative_g
-            f_score[neighbour] = tentative_g + heuristic(neighbour, goal)
-```
+current = node in open_set with lowest f_score
+if current == goal: return reconstruct_path()
+for each walkable neighbour:
+tentative_g = g_score[current] + 1
+if tentative_g < g_score[neighbour]:
+came_from[neighbour] = current
+g_score[neighbour] = tentative_g
+f_score[neighbour] = tentative_g + heuristic(neighbour, goal)
 
 Heuristic: Chebyshev distance (accounts for diagonal movement on grid).
 
- Exit Discovery
+### Exit Discovery
 Runs every player move. Checks distance from player to each
 undiscovered exit tile in the current room.
 
 ```python
-DISCOVERY_RADIUS = 2        # standard
-READER_RADIUS    = 5        # with Perception ability active
+DISCOVERY_RADIUS = 2
 
 def check_exit_discovery(player, room):
-    radius = READER_RADIUS if "perception" in player.abilities \
-             else DISCOVERY_RADIUS
     for exit in room.exits:
         if exit.discovered:
             continue
-        exit_pos = get_exit_tile_position(room, exit.direction)
-        distance = chebyshev_distance(player.position, exit_pos)
-        if distance <= radius:
+        exit_pos = get_exit_position(room, exit.direction)
+        distance = chebyshev_distance(player_pos, exit_pos)
+        if distance <= DISCOVERY_RADIUS:
             exit.discovered = True
-            add_message(f"You notice a passage to the {exit.direction}.")
 ```
 
- Combat Resolution
+### Enemy Stat Scaling
+Enemy base stats are multiplied by a per-floor factor so encounters
+grow tougher with depth.
+
+```python
+FLOOR_SCALING = {
+    1: 1.0,  2: 1.1,  3: 1.25, 4: 1.4,  5: 1.6,
+    6: 1.8,  7: 2.0,  8: 2.3,  9: 2.6, 10: 3.0,
+}
+
+def scale_stat(base, floor_number):
+    return max(1, int(base * FLOOR_SCALING.get(floor_number, 1.0)))
+```
+
+### Combat Resolution
 ```python
 def resolve_attack(attacker, defender):
     base   = roll_dice(attacker.weapon.damage_dice)
@@ -358,12 +415,11 @@ def resolve_attack(attacker, defender):
     damage = max(1, total - defender.def_)
     if random.random() < attacker.lck * 0.01:
         damage *= 2
-        add_message("Critical hit!")
     defender.hp -= damage
-    return defender.hp <= 0  # returns True if defender dies
+    return defender.hp <= 0
 ```
 
- Gate Validation
+### Gate Validation
 Runs when Vincent interacts with a sealed staircase.
 Checks condition dict against current GameState.
 
@@ -390,52 +446,44 @@ def check_gate(player, floor):
     return req.satisfied
 ```
 
- Floor Persistence
+### Floor Persistence
 ```python
 def leave_floor(game_state, direction):
     floor = game_state.current_floor
-    game_state.floor_cache[floor.number] = serialize_floor(floor)
+    game_state.floor_cache[floor.number] = floor
 
     next_number = floor.number + (1 if direction == "down" else -1)
 
     if next_number in game_state.floor_cache:
-        next_floor = deserialize_floor(game_state.floor_cache[next_number])
-        respawn_enemies(next_floor)     # respawn 60% of dead enemies
+        next_floor = game_state.floor_cache[next_number]
     else:
         next_floor = generate_floor(next_number, game_state.run_seed)
 
     game_state.current_floor = next_floor
 ```
 
- Procedural Item Generation
+On load from save, cleared rooms respawn 60% of their original enemy
+count; survivors are untouched.
+
+### Procedural Item Generation
 ```python
-def generate_item(floor_number, rarity):
-    base      = random.choice(get_items_for_floor(floor_number, rarity))
-    quality   = roll_quality(floor_number)
-    stats     = roll_stats(base, quality)
-    cursed    = random.random() < curse_chance(floor_number)
-    mystery   = generate_mystery_name(base.category)
-    return Item(
-        id           = base.id,
-        true_name    = build_true_name(quality, base, stats),
-        mystery_name = mystery,
-        identified   = False,
-        stats        = stats,
-        cursed       = cursed,
-        lore         = base.lore_template
-    )
+def generate_drop(floor_number):
+    rarity   = roll_rarity(floor_number)   # weights shift with depth
+    category = random.choice(["weapon", "armor", "consumable"])
+    template = pick_from_pool(rarity, category)
+    return copy.deepcopy(template)
 ```
 
- Dynamic Build Weighting
+### Dynamic Build Weighting
 ```python
 def get_perk_options(player):
-    counters  = player.playstyle_counters
-    total     = sum(counters.values()) or 1
-    weights   = {k: v / total for k, v in counters.items()}
-    options   = [
-        pick_perk("blade",  weights.get("blade_actions",  0)),
-        pick_perk("reader", weights.get("reader_actions", 0)),
-        pick_perk("shadow", weights.get("shadow_actions", 0)),
+    counters = player.playstyle_counters
+    total    = sum(counters.values()) or 1
+    weights  = {k: v / total for k, v in counters.items()}
+    options  = [
+        pick_perk("blade",    weights.get("blade_actions",    0)),
+        pick_perk("residual", weights.get("residual_actions", 0)),
+        pick_perk("shadow",   weights.get("shadow_actions",   0)),
     ]
     random.shuffle(options)
     return options[:3]
@@ -443,10 +491,9 @@ def get_perk_options(player):
 
 ---
 
-Pygame Renderer
+## Pygame Renderer
 
- Window Layout
-```
+### Window Layout
 ┌─────────────────────────────────┬──────────────────────┐
 │                                 │  The Hollow Descent  │
 │                                 │  ──────────────────  │
@@ -459,43 +506,37 @@ Pygame Renderer
 │                                 │  Gold    83          │
 │                                 │  ──────────────────  │
 │                                 │  MINIMAP             │
-│                                 │  [■]                 │
-│                                 │   │                  │
-│                                 │  [■]─[▶]             │
 │                                 │  ──────────────────  │
 │                                 │  INVENTORY  7/12     │
 ├─────────────────────────────────┴──────────────────────┤
-│ > You enter The Ashen Gallery. Portraits line the walls │
-│ > A passage opens to the north.                        │
-│ > The Ashen Knight turns slowly to face you.           │
+│ > You enter The Ashen Gallery.                          │
+│ > A passage opens to the north.                         │
 └────────────────────────────────────────────────────────┘
-```
+### Rendering Pipeline (per frame)
+Fill background
+Draw room tile grid (floor, walls, doors, exits, chests)
+Draw items on floor
+Draw merchant if present
+Draw enemies with current animation frame
+Draw Vincent with current animation frame
+Draw UI panels — sidebar, minimap, inventory, message log
+Draw overlays — inventory screen, merchant screen, game over
+pygame.display.flip()
 
- Rendering Pipeline (per frame)
-```
-1. Fill background
-2. Draw room tile grid (floor, walls, doors, exits)
-3. Draw items on floor
-4. Draw enemies with current animation frame
-5. Draw Vincent with current animation frame
-6. Draw UI panels — sidebar, minimap, inventory, message log
-7. pygame.display.flip()
-```
-
- Animation System
+### Animation System
 Sprite sheets contain multiple frames per state.
 Frame selected by: `(pygame.time.get_ticks() // frame_ms) % frame_count`
 
-```
 States    idle
-          walk_north / walk_south / walk_east / walk_west
-          attack
-          death
-```
+walk_north / walk_south / walk_east / walk_west
+attack
+death
+
+Animation system is deferred until the asset pack is selected.
 
 ---
 
-Game Loop
+## Game Loop
 
 ```python
 FPS   = 60
@@ -506,11 +547,8 @@ while True:
         if event.type == pygame.QUIT:
             sys.exit()
         if event.type == pygame.KEYDOWN:
-            action = input_handler.map(event.key)
-            if action:
-                action_resolver.resolve(action, game_state)
+            handle_input(event, game_state)
 
-    animation_system.update(game_state)
     renderer.draw(screen, game_state)
     pygame.display.flip()
     clock.tick(FPS)
@@ -518,59 +556,53 @@ while True:
 
 ---
 
-Data Flow — Single Player Turn
-
-```
-1. InputHandler.map(keypress)
-        ↓ returns Action object
-
-2. ActionResolver.resolve(action, game_state)
-        ↓ modifies game_state
-        ↓ returns list of Events
-
-3. EnemySystem.take_turns(game_state)
-        ↓ each living enemy in room acts
-        ↓ modifies game_state
-
-4. GateSystem.check(game_state)
-        ↓ if Vincent is at staircase, validate gate
-        ↓ modifies gate_requirement.satisfied
-
-5. GameState.check_conditions()
-        ↓ returns CONTINUE | PLAYER_DEAD | FLOOR_COMPLETE | GAME_WON
-
-6. AnimationSystem.update(game_state)
-
-7. Renderer.draw(screen, game_state)
-```
+## Data Flow — Single Player Turn
+handle_input(keypress, game_state)
+↓ movement, combat, or interaction
+Player acts — move / attack / use item / interact
+↓ modifies game_state
+Enemy turns — each living enemy in room acts
+↓ A* toward player, attack if adjacent
+↓ modifies game_state
+Gate / staircase check
+↓ validate gate if at staircase
+↓ transition floor if descending/ascending
+Condition check
+↓ CONTINUE | PLAYER_DEAD | FLOOR_COMPLETE | GAME_WON
+Renderer.draw(screen, game_state)
 
 ---
 
-Save File Schema
+## Save File Schema
 
 ```json
 {
   "version": "0.1.0",
   "run_seed": 847291,
   "turn_count": 412,
+  "game_phase": "exploring",
+  "current_floor_number": 4,
   "player": {
     "name": "Vincent",
     "level": 4,
     "hp": 67,
     "max_hp": 115,
     "atk": 11,
-    "def": 6,
+    "def_": 6,
     "spd": 10,
     "lck": 5,
     "xp": 45,
-    "xp_to_next": 150,
+    "xp_next": 150,
     "gold": 83,
+    "col": 5,
+    "row": 4,
+    "current_floor": 4,
     "inventory_cap": 12,
-    "abilities": ["perception", "resonance"],
-    "oaths_sworn": [],
+    "abilities": [],
+    "enhancements": [],
     "playstyle_counters": {
       "blade_actions": 34,
-      "reader_actions": 18,
+      "residual_actions": 18,
       "shadow_actions": 7
     },
     "inventory": [],
@@ -584,24 +616,25 @@ Save File Schema
     },
     "status_effects": []
   },
-  "current_floor_number": 4,
-  "game_phase": "exploring",
-  "floor_cache": {
+  "floors": {
     "1": {},
     "2": {},
-    "3": {}
+    "3": {},
+    "4": {}
   },
   "flags": {
-    "journal_found": false,
-    "veil_weakened": false
+    "hologram_found": false,
+    "megath_met": false,
+    "francis_freed": false
   },
-  "message_log": []
+  "messages": [],
+  "story_message": null
 }
 ```
 
 ---
 
-Testing Strategy
+## Testing Strategy
 
 | Test File | What It Covers |
 |-----------|---------------|
@@ -617,12 +650,9 @@ breaks again.
 
 ---
 
-Requirements
-
-```
-pygame==2.5.2
-pytest==8.0.0
-```
-
+## Requirements
+pygame==2.6.1
+pytest==9.0.3
+pyinstaller
 `requirements.txt` is the single source of truth for dependencies.
 Virtual environment is always activated before development sessions.

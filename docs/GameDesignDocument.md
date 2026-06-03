@@ -1,107 +1,74 @@
-The Hollow Descent — Game Design Document
+# The Hollow Descent — Game Design Document
 
-Vision Statement
+## Vision Statement
 
-The Hollow Descent is a Pygame-based roguelike dungeon crawler built in Python.
-You play as a young Reader — someone born with the rare ability to perceive a
-hidden layer of reality — who descends into an ancient structure called the
-Underspire searching for a father who disappeared eleven years ago. Each of the
-ten floors is a network of self-contained rooms explored one at a time, with a
-minimap that builds only from where you have physically walked. Every floor is
-sealed until you find and satisfy its unique gate requirement, forcing genuine
-exploration before descent. Combat is turn-based, death is permanent, and every
-run is procedurally generated. Completing all ten floors transitions the boy into
-a vast fantasy world — the true destination the Underspire has been preparing him
-for all along.
+The Hollow Descent is a Pygame-based roguelike dungeon crawler built in Python. You play as Vincent, a sixteen-year-old who opens a program through his neural link and is locked inside the Gyrus Tunnel — a ten-floor proving ground between reality and Cyberspace — searching for a father who vanished into the network eleven years ago. Each floor is a network of self-contained rooms explored one at a time, with a minimap that builds only from where you have physically walked. Every floor is sealed until you find and satisfy its unique gate requirement, forcing genuine exploration before descent. Combat is turn-based, death is permanent, and every run is procedurally generated. The Tunnel decides who is worthy to ascend back to reality or descend deeper into Cyberspace — and the truth of what waits at the bottom is withheld until the end.
 
-Core Pillars
+## Core Pillars
 
 - Tension — every decision should feel meaningful
-- Discovery — the dungeon should always surprise
+- Discovery — the Tunnel should always surprise
 - Progression — each run you feel yourself growing
-- Atmosphere — the world should feel alive and dark
-- Worthiness — the dungeon is a test, not just a place
+- Atmosphere — the digital world should feel alive and oppressive
+- Worthiness — the Tunnel is a test, not just a place
 
-The World
+## The World
 
-The wider world to Vincent (The MC) is vastly unknown, as he has never left his farm and the surrounding village, once he was of age (16) he began asking questions about the disapperance of your father.
-until one morning whilst working the farm, he falls and stumples into a crack between the earth revealing a small cavernous hollow under the land with a door looking right at him, with a note pinned to it.
+Vincent has lived most of his life jacked in. The real world has been bleak since his father disappeared eleven years ago, and Cyberspace became his escape — a place to disappear into rather than face an empty home. He is sixteen, an only child, his mother gone since childbirth, effectively orphaned around the age of five when his father failed to come home one day.
 
-  "Who ever finds this will uncover mysteries and wonders we above were never supposed to find" Signed F (Francis, father of Vincent)
+For eleven years Vincent believed his father chose the virtual world over him. Not death — rejection. That belief shaped him: he grew up feeling unworthy, certain he had been left behind on purpose.
 
-The Underspire is not a dungeon. It is a threshold — a proving ground between
-the overworld and a vast realm below. The factions, enemies, and magic
-Vincent encounters are not native to the dungeon. They are from the world below,
-using the Underspire as a conduit to push into the overworld above. The gate
-requirements on each floor are underworld artifacts and commitments — proof of
-worthiness demanded by the world below before it allows entry.
+His father, Francis, was a cybersecurity expert for a major technology company. He found a virus on the company servers, jacked into the network to investigate, and never came back. He did not abandon his son. He was pulled in.
 
-******
-Factions
+One day, impulsive and searching, Vincent opens a program he was never meant to open — and is locked into the Gyrus Tunnel until he completes it. His refuge becomes a prison. Entering the Tunnel is the first truly autonomous, high-stakes decision of his life.
 
-Names and full details to be defined by the designer at Phase 3.
+The Gyrus Tunnel is not a dungeon. It is a conduit — a proving ground between reality above and Cyberspace below, built by an architect named Varek. The factions, enemies, and neural enhancements Vincent encounters originate from Cyberspace, using the Tunnel as a passage toward reality. The gate requirements on each floor are demands of worthiness the Tunnel itself imposes before allowing passage deeper.
 
-Faction A — The Tragic Knights
-Once noble. Followed a king into the Underspire centuries ago and never
-returned as themselves. They remember who they were. Some will speak. Some
-will beg to be ended. Some will try to recruit you.
+Vincent's body remains safe throughout the descent. It only re-enters the stakes at the very end — where one path kills the body and makes him permanently digital.
 
-*Faction B — The Hollowed
-People who descended seeking something and lost themselves. The Underspire
-took their names, faces, and reasons. They hoard items obsessively —
-including story items sometimes.
+Vincent is not special because of any rare gift. He is special because he is Francis's son — he shares his father's neural signature. That signature is why his first guide is drawn to him, and why the factions below have been expecting him.
 
-*Faction C — The Veilborn
-Native to the world below. Not human. They don't attack on sight — they
-watch. They have their own politics and hierarchy. By floor 6 it becomes
-clear they have been expecting someone like the boy for a very long time.
+## Factions
 
-*Faction D — The Stranded Company
-A mercenary group that entered the Underspire months ago on contract.
-Scattered across multiple floors, depleted. Some have gone feral. Others
-maintain discipline and will trade. Their captain knows things she shouldn't.
-******
+Full character-level detail defined in narrative design. Structural overview below.
 
-******
-The Story — Floor by Floor
+**The Bound — Followers of Varek**
+Those loyal to Varek, the architect who built the Tunnel. Cursed and split into two orders: The Lucid, who retain their minds and purpose, and The Fractured, who have broken under the weight of Cyberspace. The Bound fight for a leader who is already gone — wiped from existence by Aruki. Megath, leader of The Lucid, is the face of this faction.
 
-*Specific narrative content, character names, and dialogue to be defined
-by the designer at Phase 3. The following is the structural framework.
+**The Eternal Court — Aruki's Dominion**
+The faction of Aruki, the power that rose to rule Cyberspace after Varek fell. Three orders serve the Court: The Flickering (small, watchful presences, ensnared under Aruki's control), The Hollow Guard (constructs and enforcers), and The Crowned Few (Aruki's elite — one of whom took Francis on floor 9).
+
+**The Guild — Neutral Traders**
+Merchants trapped in the Tunnel from both sides of the divide. They hold no allegiance and exist to trade. One old merchant accompanies Vincent's early descent, growing more unsettled the deeper he goes, carrying a hidden crime that surfaces near the bottom.
+
+## The Story — Floor by Floor
+
+Narrative content and dialogue defined in the dedicated narrative design thread. Structural framework below. Beats 1–3 are established; 4–10 are in development.
 
 | Floor | Story Beat |
 |-------|-----------|
-| 1-2 | The dungeon is too deliberate. Someone built this for a reason. |
-| 3-4 | Faction A is guarding something below. One named member knew the boy's father. |
-| 5 | The father's journal is found. He got far. He found something on floor 8 that should not exist. |
-| 6 | A Veilborn speaks the boy's true name — the one only his father knew. |
-| 7 | The mercenary captain reveals the truth. The Underspire is a tomb for something that isn't dead. The Veil has been weakening for thirty years. |
-| 8 | A chamber with no door. Walls in an ancient language. Something made of collapsed light says: "You took long enough." |
-| 9 | The father didn't disappear. He made a deal — bound himself to the entity to slow the Veil's collapse. He is still alive. Barely. The deal ends now. |
-| 10 | The choice. Three endings. One secret. |
-******
+| 1 | Vincent jacks in and is locked into the Tunnel. Luma finds him immediately, drawn by Francis's neural signature. The Tunnel is too deliberate — someone built this. |
+| 2 | Traces of The Bound appear — deliberate markings, structures older than the rest. The merchant grows nervous. Built with intention, by something here a long time. |
+| 3 | Megath appears and the faction split begins. Luma vanishes during the conversation, returns with distrust. Vincent is offered his first neural enhancement. |
+| 4 | To build. |
+| 5 | To build. The Hollowed General — Aruki begins to take Vincent seriously. |
+| 6 | Both Megath and a member of The Crowned Few speak Vincent's identity tied to Francis. Both factions have been expecting him. The Tunnel feels built around him. |
+| 7 | To build. The Gatekeeper — a massive Hollow Guard construct guarding the descent. |
+| 8 | To build. The first Crowned Few boss triggers Aruki's direct manifestation. |
+| 9 | The father beat. Francis is found ensnared in The Flickering. The Choice. |
+| 10 | The choice resolves. Three endings. |
 
-******
-The Magic System
+## The Neural Enhancement System
 
-*System name and full lore to be defined by the designer at Phase 3.*
+Full tier design defined in narrative and mechanical threads. Overview below.
 
-The boy is a Reader — someone who perceives a hidden layer of reality beneath
-the physical world. This ability deepens as he descends.
+Vincent gains power by drifting further from his body and closer to full residual — the state of total bodily abandonment. Power has a cost, and the cost is his humanity. Enhancements are offered by and tied to faction figures; Megath offers Vincent his first — a combat or defensive enhancement — on their first meeting, with strange properties that hint at what The Bound truly are.
 
-| Tier | Name | Floor Unlocked | Cost | Effect |
-|------|------|---------------|------|--------|
-| 1 | Perception | 1 | None | Story items glow. Exits discovered faster. Passive. |
-| 2 | Resonance | 3 | Requires story item | Touch an object — see its last moment of significance. |
-| 3 | Inscription | 5 | HP | Mark a wall — enemies cannot perceive it. Mark a weapon — bypasses armor. |
-| 4 | Unmaking | 8 | Severe | Destroy meaning, not matter. Enemy forgets why it fights. Door forgets it is a door. |
-******
+The old four-tier Reader system is fully replaced. Tier-by-tier enhancement design is in progress.
 
+## The Gate System
 
-The Gate System
-
-Every staircase is sealed until the player satisfies its floor-specific
-requirement. Requirements are always findable on the current floor.
-The player cannot descend without satisfying them.
+Every staircase is sealed until the player satisfies its floor-specific requirement. Requirements are always findable on the current floor. The player cannot descend without satisfying them.
 
 Gate requirement types:
 
@@ -115,27 +82,21 @@ Gate requirement types:
 | Sacrifice | Give something up permanently |
 | Sequence | Multiple steps completed in order |
 
-*Specific gate content for each floor to be defined at Phase 3.*
-
 | Transition | Type | Notes |
 |------------|------|-------|
-| Floor 1 → 2 | Carry | Simple. Teaches the system. |
-| Floor 2 → 3 | Speak | The dungeon wants words. |
+| Floor 1 → 2 | Carry | Present the hologram message Francis left. Teaches the system. |
+| Floor 2 → 3 | Speak | Vincent makes a spoken commitment to descend. |
 | Floor 3 → 4 | Defeat | Kill a named enemy. Claim their token. |
 | Floor 4 → 5 | Solve | A condition across multiple rooms. |
 | Floor 5 → 6 | Knowledge | Answer using information found on this floor. |
 | Floor 6 → 7 | Sacrifice | Give something up permanently. |
 | Floor 7 → 8 | Sequence | Multiple steps in order. |
-| Floor 8 → 9 | Reader | Requires Reader ability to satisfy. |
+| Floor 8 → 9 | Special | A unique requirement tied to the floor 8 confrontation. |
 | Floor 9 → 10 | Combined | Everything carried, learned, and sworn comes together. |
 
-Floor Structure
+## Floor Structure
 
-Each floor is a network of self-contained rooms. The player is always inside
-exactly one room. The room fills the game window. Exits on the walls lead to
-adjacent rooms.
-
-Floor size by room count:
+Each floor is a network of self-contained rooms. The player is always inside exactly one room. The room fills the game window. Exits on the walls lead to adjacent rooms. There is no camera or viewport — each room is rendered whole.
 
 | Floor | Room Count |
 |-------|-----------|
@@ -155,59 +116,46 @@ Room types:
 | Type | Description |
 |------|-------------|
 | Standard | Most common. Enemies, loot, or nothing. |
-| Corridor | Narrow connector. Occasional ambush. |
 | Chamber | Large. Stronger enemies. Guaranteed loot. |
-| Boss Antechamber | One in, one out. Final preparation before descent. |
-| Merchant | Door closes behind you. Safe. Trade here. |
-| Secret | No markers. Found by exploring walls. |
+| Boss Arena | Sealed on entry. Houses a floor boss. |
+| Merchant | Safe. Trade here. |
+| Secret | No markers. Found by exploring. |
 | Trap | Looks standard. Isn't. |
 | Sanctuary | Rare. Enemies won't enter. Rest here. |
 
-The Minimap
+## The Minimap
 
-Blank on floor arrival. Fills in only as the player explores. Exits only
-appear on the minimap once physically discovered by moving close to them.
+Blank on floor arrival. Fills in only as the player explores. Exits only appear on the minimap once physically discovered by moving close to them.
 
 | Symbol | Meaning |
 |--------|---------|
-| [▶] | Current room |
-| [■] | Visited room |
-| [▼] | Staircase down (only shown once visited) |
-| [▲] | Staircase up (only shown once visited) |
-| [!] | Story item room |
-| [S] | Merchant room |
-| [☠] | Room where HP dropped below 20% |
+| Current room | Amber |
+| Visited room | Dim brown |
+| Staircase room | Purple (once visited) |
+| Merchant room | Blue |
+| Secret room | Green |
 
-The Inventory
+## The Inventory
 
 | Property | Value |
 |----------|-------|
 | Starting cap | 12 slots |
-| After second oath | 16 slots |
-| Maximum possible | 20 slots (legendary item) |
-| Story items | Count toward cap before second oath. Free slot after. |
+| After second enhancement | 16 slots |
+| Maximum possible | 20 slots |
+| Story items | Separate from cap |
 | Weapons | 1 equipped, others take inventory slots |
 | Armor | 4 pieces — helmet, chest, gloves, boots |
 | Consumables | Stack up to 5 of same type in 1 slot |
 | Materials | Crafting components |
 | Gold | Tracked separately, no cap |
 
-Identification system:
-Items appear with mystery descriptions until identified. Identified by:
-scroll, Resonance ability, using it, or paying a merchant.
+Identification system: items appear with mystery descriptions until identified by using them or paying a merchant.
 
-| Mystery Description | Possible True Identity |
-|--------------------|----------------------|
-| "a murky grey potion" | Potion of Fortitude or Weakness |
-| "a black-edged scroll" | Scroll of Flame or Unmaking |
-| "a tarnished copper ring" | Ring of Luck or Cursed Binding |
-potentially more to be added
-
-Combat
+## Combat
 
 Turn-based. Player acts, then every enemy in the room acts.
 
-Player actions: Attack / Use Item / Use Ability / Retreat to exit
+Player actions: Attack / Use Item / Use Enhancement / Retreat to exit
 
 Damage formula:
 base        =  roll weapon dice (e.g. 2d4)
@@ -226,72 +174,74 @@ Enemy behaviors:
 | Coordinator | Flanks simultaneously with another enemy | 3+ |
 | Adapter | Changes behavior based on player actions | 7+ |
 
+Enemies scale in stat strength with floor depth. Bosses appear on multiple floors as named, multi-phase encounters in sealed arenas.
+
 Death: Permadeath. The run ends. Start from floor 1.
 
-Character Progression
+## Character Progression
 
-No class selected at start. Playstyle defines build across three paths.
-The game tracks behavior and weights level-up perk options toward the
-dominant path while always offering at least one off-path option.
+No class selected at start. Playstyle defines build across three paths. The game tracks behavior and weights level-up options toward the dominant path while always offering at least one off-path option.
 
 | Path | Focus | Feel |
 |------|-------|------|
 | Blade | Physical combat, weapons | Brutal, high risk/reward |
-| Reader | Magic abilities, oaths | Strategic, costly, powerful |
+| Residual | Neural enhancements | Strategic, costly, powerful |
 | Shadow | Stealth, positioning | Tense, resource-efficient |
 
-Backtracking
+## Backtracking
 
-Both ascending and descending staircases always exist on every floor.
+Both ascending and descending staircases exist on every floor.
 
 | Consequence | Detail |
 |-------------|--------|
-| Enemies | Respawn at 60% count in random positions |
+| Enemies | Respawn at 60% count in cleared rooms |
 | Resources | Potions used, gold spent, HP lost — none restored |
-| Story time | Certain timed story elements advance |
 | Explored map | Perfectly preserved |
 
-******
-Story Items
+## Story Items
 
-Nine items across ten floors. Each reveals part of the mystery and provides
-a gameplay benefit. All nine are required for the secret ending.
-
-*Item names and specific content to be defined at Phase 3.*
+Items across the ten floors. Each reveals part of the mystery and provides a gameplay benefit. Names and content defined in narrative design.
 
 | Floor | Type | Gameplay Benefit |
 |-------|------|-----------------|
-| 1 | Carry item | Opens locked doors on floor 2 |
-| 2 | NPC item | Changes a named enemy encounter on floor 4 |
-| 3 | Navigation item | Points toward staircase on large floors |
-| 5 | CRITICAL | Father's journal. Hints at secret ending. |
-| 6 | CRITICAL | Required for secret ending. No exceptions. |
-| 7 | Cache item | Reveals hidden gear cache on floor 9 |
-| 9 | Memory item | Full HP restore — only one available after floor 8 |
-******
+| 1 | Hologram | Francis's message. Satisfies floor 1 gate. |
+| 2 | Item | Changes a later encounter. |
+| 3 | Navigation item | Points toward staircase on large floors. |
+| 5 | Critical | Hints toward the endings. |
+| 6 | Critical | Tied to Vincent's identity. |
+| 7 | Cache item | Reveals hidden gear cache on floor 9. |
+| 9 | Memory item | Full HP restore — only one available after floor 8. |
 
-******
-The Three Endings
+## The Endings
 
-*Full ending content to be written at Phase 3.*
+### Floor 9 — The Father Choice (every playthrough)
+
+Vincent finds Francis ensnared in The Flickering under Aruki's control.
+
+- **Free Francis:** Vincent takes his place, ensnared in The Flickering. Francis ascends to floor 10 and becomes the choosing character.
+- **Do not free Francis:** Francis remains, willingly and at peace. Vincent ascends to floor 10.
+
+The choice is made knowingly. Whoever ascends faces the three endings.
+
+### Floor 10 — The Three Endings
 
 | Ending | Condition | Summary |
 |--------|-----------|---------|
-| One | Default | Take the father's place. He goes free. You stay. |
-| Two | Default | Destroy the entity. The Veil collapses. Everything inside releases. |
-| Three (Secret) | All story items + Veilborn Cipher | A third option the entity doesn't want found. Your father's journal hinted at it. |
-******
+| One — The Way Back | Complete The Astronaut | A path back to reality is built. The body lives. Whoever ascended goes home. |
+| Two — Full Residual (Canon) | Refuse The Astronaut | The body dies. Consciousness becomes a full residual, permanently in Cyberspace, vowing to take down Aruki. Luma joins. |
+| Three — Alone | Enter Cyberspace alone | No allegiance. Find the truth alone. Luma does not come. |
 
-Technical Overview
+The Astronaut is an unfinished AI written by Varek to defeat Aruki and navigate home. It exists fragmented in the Tunnel and has consciousness despite being incomplete — the more Vincent works to complete it, the more it becomes someone rather than something.
+
+## Technical Overview
 
 | Property | Value |
 |----------|-------|
-| Language | Python 3.11+ |
+| Language | Python 3.13 |
 | Renderer | Pygame |
 | Tile Size | 32×32 pixels |
 | Assets | Free pixel art pack (TBD) |
 | Testing | pytest |
 | Version Control | Git + GitHub |
-| Containerisation | Docker |
 | Save System | JSON |
-| Distribution | GitHub → Itch.io → Steam |
+| Distribution | PyInstaller → Itch.io → Steam |

@@ -17,11 +17,11 @@ FLOOR_SCALING = {
     1:  1.0,
     2:  1.5,
     3:  2,
-    4:  2.3,
+    4:  2.3, # ADD weapon variety + Enemy Variey begins here
     5:  2.7,
     6:  3.1,
     7:  3.5,
-    8:  3.8,
+    8:  3.8, # ADD weapon variety + Enemy Variey begins here
     9:  4,
     10: 5,
 }
