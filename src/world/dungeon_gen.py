@@ -2,7 +2,11 @@ import random
 from world.tile import WALL, FLOOR, STAIRCASE_DOWN, STAIRCASE_UP
 from world.room import Room, Exit
 from world.floor import Floor, GateRequirement
-from entities.enemy import make_bug, make_glitch   # tier 1 fodder factories
+from entities.enemy import (
+    make_bug, make_glitch,              # tier 1 fodder
+    make_flickering, make_fractured,    # tier 2 enemies
+    make_hollow_guard,                  # tier 3 enemy
+)
 from entities.npc import Merchant, generate_merchant_stock
 
 # Room size bounds in tiles
@@ -308,14 +312,31 @@ def spawn_enemies(room, floor_number, rng):
     for i in range(min(count, len(walkable))):
         col, row = walkable[i]
 
-        # Floors 1-2 — tier 1 fodder only (bugs and glitches)
+        # Pick enemy type by tier based on floor depth.
+        # Each tier overlaps slightly so floors feel like transitions.
         if floor_number <= 2:
-            enemy = rng.choice([make_bug, make_glitch])(col, row, floor_number)
+            # Tier 1 — bugs and glitches only
+            factory = rng.choice([make_bug, make_glitch])
+        elif floor_number <= 5:
+            # Tier 2 — Flickering and Fractured appear, fodder thins out
+            factory = rng.choice([
+                make_glitch, make_flickering,
+                make_flickering, make_fractured,
+            ])
+        elif floor_number <= 8:
+            # Tier 3 — Hollow Guard joins, Fractured common
+            factory = rng.choice([
+                make_flickering, make_fractured,
+                make_fractured, make_hollow_guard,
+            ])
         else:
-            # Deeper floors default to bugs for now
-            # (tier 2+ enemy types wired in during enemy expansion)
-            enemy = make_bug(col, row, floor_number)
+            # Tier 4 — all types converge on floors 9-10
+            factory = rng.choice([
+                make_flickering, make_fractured,
+                make_hollow_guard, make_hollow_guard,
+            ])
 
+        enemy = factory(col, row, floor_number)
         room.enemies.append(enemy)
         
 def place_chests(room, floor_number, rng):

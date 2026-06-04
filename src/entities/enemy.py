@@ -145,3 +145,81 @@ def make_glitch(col, row, floor_number=1):
         row        = row,
         behavior   = "aggressive",            # paths toward player on sight
     )
+
+def make_flickering(col, row, floor_number=1):
+    """
+    Factory function — creates a Flickering scaled to the floor number.
+    Tier 2 enemy: Eternal Court, ensnared by Aruki, hostile on sight.
+    Floors 3-5. Faster and more dangerous than tier 1 fodder.
+    """
+    hp   = scale_stat(22, floor_number)   # tougher than a bug
+    atk  = scale_stat(6,  floor_number)   # hits harder than tier 1
+    def_ = scale_stat(2,  floor_number)   # light defence
+    xp   = int(35 * FLOOR_SCALING.get(floor_number, 1.0))   # worth more XP
+
+    return Enemy(
+        id         = f"flickering_{col}_{row}",   # unique id from position
+        name       = "Flickering",
+        enemy_type = "flickering",                # keys into colours/drops
+        hp         = hp,
+        max_hp     = hp,
+        atk        = atk,
+        def_       = def_,
+        spd        = 11,                          # quick, erratic
+        xp_reward  = xp,
+        col        = col,
+        row        = row,
+        behavior   = "aggressive",                # Aruki-controlled, attacks
+    )
+
+def make_fractured(col, row, floor_number=1):
+    """
+    Factory function — creates a Fractured scaled to the floor number.
+    Tier 2-3 enemy: The Bound, minds shattered, hostile by instinct.
+    Floors 3-8. Tanky but slow — a broken warrior.
+    """
+    hp   = scale_stat(35, floor_number)   # high HP — a damaged tank
+    atk  = scale_stat(7,  floor_number)   # heavy hits
+    def_ = scale_stat(3,  floor_number)   # decent defence
+    xp   = int(45 * FLOOR_SCALING.get(floor_number, 1.0))   # rewarding kill
+
+    return Enemy(
+        id         = f"fractured_{col}_{row}",   # unique id from position
+        name       = "Fractured",
+        enemy_type = "fractured",                # keys into colours/drops
+        hp         = hp,
+        max_hp     = hp,
+        atk        = atk,
+        def_       = def_,
+        spd        = 6,                          # slow, lumbering
+        xp_reward  = xp,
+        col        = col,
+        row        = row,
+        behavior   = "aggressive",               # instinctive hostility
+    )
+
+def make_hollow_guard(col, row, floor_number=1):
+    """
+    Factory function — creates a Hollow Guard scaled to the floor number.
+    Tier 3 enemy: Eternal Court, pure AI muscle, no personhood.
+    Floors 6-8. The toughest standard enemy — imposing and durable.
+    """
+    hp   = scale_stat(50, floor_number)   # very high HP — a wall
+    atk  = scale_stat(9,  floor_number)   # punishing damage
+    def_ = scale_stat(5,  floor_number)   # heavy defence
+    xp   = int(60 * FLOOR_SCALING.get(floor_number, 1.0))   # big reward
+
+    return Enemy(
+        id         = f"hollow_guard_{col}_{row}",   # unique id from position
+        name       = "Hollow Guard",
+        enemy_type = "hollow_guard",                # keys into colours/drops
+        hp         = hp,
+        max_hp     = hp,
+        atk        = atk,
+        def_       = def_,
+        spd        = 7,                             # slow but relentless
+        xp_reward  = xp,
+        col        = col,
+        row        = row,
+        behavior   = "aggressive",                  # attacks on sight
+    )

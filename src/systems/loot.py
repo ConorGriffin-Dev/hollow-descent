@@ -5,29 +5,31 @@ from systems.inventory import (
     HEALTH_POTION, IRON_DAGGER, IRON_SWORD   # used as drop templates / fallbacks
 )
 
-# Gold drop ranges per floor
+# Gold drop ranges per floor — (min, max) awarded when a gold drop succeeds.
+# Deliberately lean early so money stays meaningful; scales with depth.
 GOLD_RANGES = {
-    1:  (3,  10),
-    2:  (5,  15),
-    3:  (8,  20),
-    4:  (10, 25),
-    5:  (15, 35),
-    6:  (20, 45),
-    7:  (25, 55),
-    8:  (30, 65),
-    9:  (35, 80),
-    10: (40, 100),
+    1:  (1,  4),
+    2:  (2,  6),
+    3:  (3,  9),
+    4:  (4,  12),
+    5:  (6,  16),
+    6:  (8,  20),
+    7:  (10, 26),
+    8:  (13, 32),
+    9:  (16, 40),
+    10: (20, 50),
 }
 
-# Drop chance per enemy type — gold and item probabilities
+# Drop chance per enemy type — gold and item probabilities.
+# Tightened so early fodder rarely pays out; deeper enemies are worth hunting.
 DROP_CHANCES = {
-    "glitch":       {"gold": 0.4, "item": 0.05},   # tier 1 weak fodder
-    "bug":          {"gold": 0.6, "item": 0.15},   # tier 1 stronger fodder
-    "flickering":   {"gold": 0.5, "item": 0.20},   # tier 2 Court enemy
-    "fractured":    {"gold": 0.3, "item": 0.25},   # tier 2-3 Bound enemy
-    "hollow_guard": {"gold": 0.7, "item": 0.30},   # tier 3 Court muscle
-    "crowned":      {"gold": 0.8, "item": 0.45},   # tier 4 elite / boss-tier
-    "default":      {"gold": 0.5, "item": 0.10},   # fallback for unlisted types
+    "glitch":       {"gold": 0.20, "item": 0.03},   # tier 1 weak fodder
+    "bug":          {"gold": 0.30, "item": 0.06},   # tier 1 stronger fodder
+    "flickering":   {"gold": 0.35, "item": 0.10},   # tier 2 Court enemy
+    "fractured":    {"gold": 0.30, "item": 0.14},   # tier 2-3 Bound enemy
+    "hollow_guard": {"gold": 0.45, "item": 0.20},   # tier 3 Court muscle
+    "crowned":      {"gold": 0.60, "item": 0.35},   # tier 4 elite / boss-tier
+    "default":      {"gold": 0.30, "item": 0.06},   # fallback for unlisted types
 }
 
 def roll_loot(enemy, floor_number):

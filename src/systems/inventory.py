@@ -180,3 +180,24 @@ ITEM_POOL = {
     "common_consumables":[HEALTH_POTION],
     "uncommon_consumables": [STRONG_POTION, SCROLL_OF_LIGHT],
 }
+
+# Base gold value by rarity — used for buying reference and selling.
+# Sell price is a fraction of this (see SELL_MULTIPLIER).
+RARITY_VALUE = {
+    "common":    15,
+    "uncommon":  40,
+    "rare":      90,
+    "legendary": 120,
+}
+
+# Players sell items back at this fraction of base value.
+SELL_MULTIPLIER = 0.5
+
+def get_sell_price(item):
+    """
+    Returns the gold a player receives for selling an item.
+    Based on the item's rarity, halved, minimum 1 gold.
+    Consumable stacks sell per single unit, not the whole stack.
+    """
+    base = RARITY_VALUE.get(item.rarity, 10)   # fallback for odd rarities
+    return max(1, int(base * SELL_MULTIPLIER))

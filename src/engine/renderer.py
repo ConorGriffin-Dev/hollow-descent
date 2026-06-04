@@ -570,12 +570,17 @@ def draw_game_over(screen, font, font_small):
     )
     screen.blit(inst, (cx - inst.get_width() // 2, cy + 20))
     
-def draw_merchant_screen(screen, font, font_small, merchant, player_gold, selected_index):
+def draw_merchant_screen(screen, font, font_small, merchant, player,
+                         selected_index, mode="buy"):
     """
     Draws the merchant shop overlay.
-    Shows merchant stock with prices.
-    Player navigates with arrow keys and presses B to buy.
+    In "buy" mode shows merchant stock with buy prices.
+    In "sell" mode shows the player's inventory with sell prices.
+    Player navigates with arrow keys, TAB toggles mode,
+    B buys, S sells, ESC leaves.
     """
+    from systems.inventory import get_sell_price
+
     # Dark overlay
     overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
     overlay.set_alpha(220)
@@ -593,13 +598,14 @@ def draw_merchant_screen(screen, font, font_small, merchant, player_gold, select
     pygame.draw.rect(screen, (55, 70, 100),
                      pygame.Rect(panel_x, panel_y, panel_w, panel_h), 1)
 
-    # Title
-    title = font.render("THE MERCHANT", True, (90, 120, 180))
+    # Title reflects current mode
+    title_text = "THE MERCHANT — BUYING" if mode == "buy" else "THE MERCHANT — SELLING"
+    title = font.render(title_text, True, (90, 120, 180))
     screen.blit(title, (panel_x + 16, panel_y + 14))
 
-    # Player gold
+    # Player gold (always shown top right)
     gold = font_small.render(
-        f"Your gold:  {player_gold}",
+        f"Your gold:  {player.gold}",
         True, COL_GOLD
     )
     screen.blit(gold, (panel_x + panel_w - gold.get_width() - 16, panel_y + 16))
@@ -609,7 +615,7 @@ def draw_merchant_screen(screen, font, font_small, merchant, player_gold, select
                      (panel_x, panel_y + 36),
                      (panel_x + panel_w, panel_y + 36), 1)
 
-    # Stock list
+    # List geometry
     list_x = panel_x + 16
     list_y = panel_y + 46
     item_h = 28
@@ -619,13 +625,34 @@ def draw_merchant_screen(screen, font, font_small, merchant, player_gold, select
         "armor":      (80,  120, 180),
         "consumable": (180, 80,  80),
         "material":   (120, 120, 120),
+        "story":      (80,  180, 120),
     }
 
-    for i, (item, price) in enumerate(merchant.stock):
+    # Build the row list depending on mode.
+    # Each row is (item, price, sellable_flag)
+    rows = []
+    if mode == "buy":
+        for item, price in merchant.stock:
+            rows.append((item, price, True))
+    else:
+        for item in player.inventory:
+            # Equipped items can't be sold — flag them so we can grey them out
+            is_equipped = item in player.equipped.values()
+            price       = get_sell_price(item)
+            rows.append((item, price, not is_equipped))
+
+    # Empty-state message
+    if not rows:
+        empty_text = "Nothing to buy." if mode == "buy" else "Nothing to sell."
+        empty = font_small.render(empty_text, True, COL_TEXT_DIM)
+        screen.blit(empty, (list_x, list_y + 4))
+
+    # Draw each row
+    for i, (item, price, sellable) in enumerate(rows):
         item_y = list_y + i * item_h
         colour = SLOT_COLOURS.get(item.category, (120, 120, 120))
 
-        # Highlight selected
+        # Highlight selected row
         if i == selected_index:
             pygame.draw.rect(screen, (20, 25, 40),
                              pygame.Rect(list_x - 4, item_y - 2,
@@ -638,37 +665,59 @@ def draw_merchant_screen(screen, font, font_small, merchant, player_gold, select
         pygame.draw.rect(screen, colour,
                          pygame.Rect(list_x, item_y + 8, 8, 8))
 
-        # Item name
-        can_afford = player_gold >= price
-        name_col   = COL_TEXT_BRIGHT if i == selected_index else COL_TEXT_MID
-        name       = font_small.render(item.display_name(), True, name_col)
+        # Item name — greyed if not sellable (equipped, sell mode)
+        if mode == "buy":
+            can_act = player.gold >= price
+        else:
+            can_act = sellable
+
+        name_col = COL_TEXT_BRIGHT if i == selected_index else COL_TEXT_MID
+        if not can_act:
+            name_col = COL_TEXT_DIM
+        name = font_small.render(item.display_name(), True, name_col)
         screen.blit(name, (list_x + 14, item_y + 6))
 
-        # Short desc
+        # Quantity tag for consumable stacks
+        if item.category == "consumable" and item.quantity > 1:
+            qty = font_small.render(f"x{item.quantity}", True, COL_TEXT_DIM)
+            screen.blit(qty, (list_x + 14 + name.get_width() + 6, item_y + 6))
+
+        # Short desc beneath
         desc = font_small.render(item.short_desc(), True, COL_TEXT_DIM)
         screen.blit(desc, (list_x + 14, item_y + 18))
 
-        # Price
-        price_col = COL_GOLD if can_afford else (120, 60, 60)
-        price_txt = font_small.render(f"{price}g", True, price_col)
-        screen.blit(price_txt,
-                    (panel_x + panel_w - price_txt.get_width() - 16, item_y + 8))
+        # Price — green if actionable, dim otherwise; "EQUIPPED" if blocked
+        if mode == "sell" and not sellable:
+            tag = font_small.render("EQUIPPED", True, (120, 60, 60))
+            screen.blit(tag,
+                        (panel_x + panel_w - tag.get_width() - 16, item_y + 8))
+        else:
+            price_col = COL_GOLD if can_act else (120, 60, 60)
+            price_txt = font_small.render(f"{price}g", True, price_col)
+            screen.blit(price_txt,
+                        (panel_x + panel_w - price_txt.get_width() - 16, item_y + 8))
 
-    # Controls
+    # Controls at bottom
     controls_y = panel_y + panel_h - 30
     pygame.draw.line(screen, (55, 70, 100),
                      (panel_x, controls_y - 6),
                      (panel_x + panel_w, controls_y - 6), 1)
 
-    for key, action, cx in [
-        ("B", "Buy",   panel_x + 16),
-        ("ESC", "Leave", panel_x + 80),
-    ]:
+    # Action key changes with mode
+    action_key   = ("B", "Buy") if mode == "buy" else ("S", "Sell")
+    control_defs = [
+        action_key,
+        ("TAB", "Buy/Sell"),
+        ("ESC", "Leave"),
+    ]
+
+    cx = panel_x + 16
+    for key, action in control_defs:
         key_surf = font_small.render(f"[{key}]", True, (90, 120, 180))
         act_surf = font_small.render(f" {action}", True, COL_TEXT_DIM)
         screen.blit(key_surf, (cx, controls_y))
-        screen.blit(act_surf, (cx + key_surf.get_width(), controls_y)) 
-    
+        screen.blit(act_surf, (cx + key_surf.get_width(), controls_y))
+        cx += key_surf.get_width() + act_surf.get_width() + 16
 def draw_start_screen(screen, font, font_small, has_save):
     """
     Draws the start screen.

@@ -115,7 +115,7 @@ def handle_input(event, game_state):
             game_state.merchant_selected = 0
         return
 
-    # ── Merchant navigation and buying ────────────────────────────
+    # ── Merchant navigation, buying, selling ──────────────────────
     if game_state.merchant_open:
         room     = game_state.current_floor.get_current_room()
         merchant = room.special_state.get("merchant")
@@ -124,19 +124,36 @@ def handle_input(event, game_state):
             game_state.merchant_open = False
             return
 
+        # TAB toggles between buying and selling modes
+        if event.key == pygame.K_TAB:
+            game_state.merchant_mode = (
+                "sell" if game_state.merchant_mode == "buy" else "buy"
+            )
+            game_state.merchant_selected = 0
+            return
+
+        # Choose which list we're navigating based on mode
+        if game_state.merchant_mode == "buy":
+            list_length = len(merchant.stock)
+        else:
+            list_length = len(game_state.player.inventory)
+
         if event.key == pygame.K_UP:
             game_state.merchant_selected = max(
                 0, game_state.merchant_selected - 1
             )
         elif event.key == pygame.K_DOWN:
             game_state.merchant_selected = min(
-                len(merchant.stock) - 1,
+                max(0, list_length - 1),
                 game_state.merchant_selected + 1
             )
         elif event.key == pygame.K_ESCAPE:
             game_state.merchant_open = False
-        elif event.key == pygame.K_b:
+            game_state.merchant_mode = "buy"   # reset to buy on close
+        elif event.key == pygame.K_b and game_state.merchant_mode == "buy":
             buy_item(game_state, merchant)
+        elif event.key == pygame.K_s and game_state.merchant_mode == "sell":
+            sell_item(game_state)
         return
 
     if event.key not in direction_map:
@@ -481,8 +498,10 @@ def open_chest(game_state):
 
             # Generate 1-2 items
             import random
-            item_count = random.randint(1, 2)
-            gold       = random.randint(5, 20) * floor.number
+            # Most chests hold one item; two is the occasional bonus
+            item_count = 1 if random.random() < 0.7 else 2
+            # Chest gold — modest, scales gently with floor depth
+            gold = random.randint(3, 8) * floor.number
 
             # Award gold
             player.gold += gold
@@ -573,6 +592,54 @@ def buy_item(game_state, merchant):
     game_state.merchant_selected = min(
         game_state.merchant_selected,
         len(merchant.stock) - 1
+    )
+    
+def sell_item(game_state):
+    """
+    Sells the selected inventory item to the merchant.
+    Equipped items cannot be sold — they must be unequipped first.
+    Consumable stacks sell one unit at a time.
+    Gold is added at the rarity-based sell price.
+    """
+    from systems.inventory import get_sell_price
+
+    player    = game_state.player
+    inventory = player.inventory
+
+    if not inventory:
+        return
+
+    idx  = game_state.merchant_selected
+    if idx >= len(inventory):
+        return
+
+    item = inventory[idx]
+
+    # Block selling equipped gear — must unequip first
+    if item in player.equipped.values():
+        game_state.add_message("You can't sell equipped gear. Unequip it first.")
+        return
+
+    price = get_sell_price(item)
+
+    # Consumable stacks sell one unit at a time
+    if item.category == "consumable" and item.quantity > 1:
+        item.quantity -= 1
+        player.gold   += price
+        game_state.add_message(
+            f"You sell one {item.display_name()} for {price}g."
+        )
+        return
+
+    # Otherwise sell the whole item and remove it
+    player.gold += price
+    inventory.pop(idx)
+    game_state.add_message(f"You sell {item.display_name()} for {price}g.")
+
+    # Keep the selection index valid after removal
+    game_state.merchant_selected = min(
+        game_state.merchant_selected,
+        max(0, len(inventory) - 1)
     )        
 
 def pickup_item(game_state):
@@ -880,6 +947,7 @@ def main():
                     game_state.inventory_selected
                 )
                 
+            # Draw merchant overlay on top if open
             if game_state.merchant_open:
                 room     = game_state.current_floor.get_current_room()
                 merchant = room.special_state.get("merchant")
@@ -887,9 +955,10 @@ def main():
                     draw_merchant_screen(
                         screen, font, font_small,
                         merchant,
-                        game_state.player.gold,
-                        game_state.merchant_selected
-                    )    
+                        game_state.player,
+                        game_state.merchant_selected,
+                        game_state.merchant_mode
+                    )
         pygame.display.flip()
         clock.tick(FPS)
 

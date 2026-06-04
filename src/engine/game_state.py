@@ -41,6 +41,8 @@ class GameState:
     # Merchant screen state
     merchant_open: bool = False
     merchant_selected: int = 0
+    # Merchant mode — "buy" shows stock, "sell" shows player inventory
+    merchant_mode: str = "buy"
 
     def add_message(self, text):
         """Appends a general message to the log."""
