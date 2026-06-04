@@ -30,9 +30,9 @@ class GameState:
 
     # Story and quest flags — track narrative state across the run
     flags: Dict[str, bool] = field(default_factory=dict)
-    # e.g. flags["journal_found"]  = True
-    #      flags["voryn_spoke"]    = True
-    #      flags["veil_weakened"]  = False
+    # e.g. flags["hologram_found"] = True
+    #      flags["megath_met"]     = True
+    #      flags["francis_freed"]  = False
     
     # Inventory screen state
     inventory_open: bool = False

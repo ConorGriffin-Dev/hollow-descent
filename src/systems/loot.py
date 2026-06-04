@@ -2,7 +2,7 @@ import random
 import copy
 from systems.inventory import (
     Item, ITEM_POOL,
-    HEALTH_POTION, IRON_DAGGER, IRON_SWORD
+    HEALTH_POTION, IRON_DAGGER, IRON_SWORD   # used as drop templates / fallbacks
 )
 
 # Gold drop ranges per floor
@@ -19,14 +19,15 @@ GOLD_RANGES = {
     10: (40, 100),
 }
 
-# Drop chance per enemy type
+# Drop chance per enemy type — gold and item probabilities
 DROP_CHANCES = {
-    "rat":          {"gold": 0.4, "item": 0.05},
-    "goblin":       {"gold": 0.6, "item": 0.15},
-    "skeleton":     {"gold": 0.3, "item": 0.20},
-    "ashen_knight": {"gold": 0.7, "item": 0.35},
-    "dark_mage":    {"gold": 0.5, "item": 0.40},
-    "default":      {"gold": 0.5, "item": 0.10},
+    "glitch":       {"gold": 0.4, "item": 0.05},   # tier 1 weak fodder
+    "bug":          {"gold": 0.6, "item": 0.15},   # tier 1 stronger fodder
+    "flickering":   {"gold": 0.5, "item": 0.20},   # tier 2 Court enemy
+    "fractured":    {"gold": 0.3, "item": 0.25},   # tier 2-3 Bound enemy
+    "hollow_guard": {"gold": 0.7, "item": 0.30},   # tier 3 Court muscle
+    "crowned":      {"gold": 0.8, "item": 0.45},   # tier 4 elite / boss-tier
+    "default":      {"gold": 0.5, "item": 0.10},   # fallback for unlisted types
 }
 
 def roll_loot(enemy, floor_number):

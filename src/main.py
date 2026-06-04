@@ -196,7 +196,7 @@ def handle_input(event, game_state):
             if player.hp <= 0:
                 game_state.game_phase = "game_over"
                 game_state.add_message(
-                    "Darkness takes you. The Underspire claims another."
+                    "Your signal collapses. The Tunnel claims another mind."
                 )
 
     else:
@@ -344,7 +344,7 @@ def check_staircase(game_state):
     if current_tile.type == "staircase_down":
         if not floor.gate_requirement.satisfied:
             game_state.add_message(
-                "The way down is sealed. You must prove your worth."
+                "The path deeper is locked. The Tunnel demands proof."
             )
             return
 
@@ -381,7 +381,7 @@ def check_staircase(game_state):
     elif current_tile.type == "staircase_up":
         if floor.number == 1:
             game_state.add_message(
-                "The way back is sealed. There is only down."
+                "The way back is severed. There is only down."
             )
             return
 
@@ -581,7 +581,7 @@ def pickup_item(game_state):
     Checks inventory cap before adding.
     Consumables stack up to 5 in one slot.
     Story items go into a separate list and don't count
-    toward the cap after the second oath.
+    toward the cap after the second enhancement.
     """
     player = game_state.player
     room   = game_state.current_floor.get_current_room()
@@ -817,10 +817,11 @@ def main():
                     player.col             = start_room.width  // 2
                     player.row             = start_room.height // 2
 
-                    game_state.add_message("You descend into the Underspire.")
-                    game_state.add_message(f"You stand in {start_room.name}.")
+                    game_state.add_message("You jack into the Gyrus Tunnel.")
+                    game_state.add_message(f"You materialise in {start_room.name}.")
                     game_state.set_story_message(
-                        "The door behind you is gone. Only the dark remains."
+                        "The exit node is gone. You are locked in. "
+                        "The only way out is down."
                     )
 
                 elif event.key == pygame.K_c and has_save:

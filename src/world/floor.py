@@ -1,4 +1,4 @@
-# Floor represents one complete level of the Underspire.
+# Floor represents one complete level of the Gyrus Tunnel.
 # A floor is a graph of connected rooms — not a single large grid.
 # The player navigates between rooms via exits.
 

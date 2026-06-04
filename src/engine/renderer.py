@@ -512,7 +512,7 @@ def draw_message_log(screen, font, font_small, messages, story_message=None):
             screen.blit(font_small.render(line, True, COL_STORY_TEXT), (sx, sy))
     else:
         screen.blit(
-            font_small.render("No messages yet.", True, COL_TEXT_DIM),
+            font_small.render("No transmissions.", True, COL_TEXT_DIM),
             (sx, sy + 10)
         )
         
@@ -545,7 +545,7 @@ def draw_game_over(screen, font, font_small):
     """
     Draws the game over screen.
     Full screen dark overlay with death message.
-    Player presses R to restart or ESC to quit.
+    Player presses ESC to quit.
     """
     # Dark overlay
     screen.fill((5, 0, 0))
@@ -555,12 +555,12 @@ def draw_game_over(screen, font, font_small):
     cy = WINDOW_HEIGHT // 2
 
     # Title
-    title = font.render("YOU HAVE FALLEN", True, (160, 40, 40))
+    title = font.render("SIGNAL LOST", True, (160, 40, 40))
     screen.blit(title, (cx - title.get_width() // 2, cy - 60))
 
     # Subtitle
     sub = font_small.render(
-        "The Underspire claims another soul.", True, (80, 40, 40)
+        "The Tunnel claims another mind.", True, (80, 40, 40)
     )
     screen.blit(sub, (cx - sub.get_width() // 2, cy - 30))
 
@@ -568,7 +568,7 @@ def draw_game_over(screen, font, font_small):
     inst = font_small.render(
         "Press ESC to quit.", True, (60, 40, 40)
     )
-    screen.blit(inst, (cx - inst.get_width() // 2, cy + 20)) 
+    screen.blit(inst, (cx - inst.get_width() // 2, cy + 20))
     
 def draw_merchant_screen(screen, font, font_small, merchant, player_gold, selected_index):
     """
@@ -686,7 +686,7 @@ def draw_start_screen(screen, font, font_small, has_save):
 
     # Subtitle
     sub = font_small.render(
-        "A darkness waits beneath the earth.", True, COL_TEXT_DIM
+        "Ten floors between you and the truth.", True, COL_TEXT_DIM
     )
     screen.blit(sub, (cx - sub.get_width() // 2, cy - 90))
 

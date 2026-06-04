@@ -51,13 +51,14 @@ class Player:
 
     # Abilities and progression tracking
     abilities: List          = field(default_factory=list)
-    oaths_sworn: List        = field(default_factory=list)
+    # Spoken/sworn commitments made at gates (e.g. floor 2 speak-gate)
+    commitments_made: List = field(default_factory=list)
+    # Tracks how the player tends to act — weights level-up perk options
     playstyle_counters: Dict = field(default_factory=lambda: {
-        "blade_actions":  0,
-        "reader_actions": 0,
-        "shadow_actions": 0,
+        "blade_actions":    0,   # physical combat actions
+        "residual_actions": 0,   # neural enhancement actions
+        "shadow_actions":   0,   # stealth / positioning actions
     })
-
     # Status effects (to be expanded in Phase 2)
     status_effects: List = field(default_factory=list)
 

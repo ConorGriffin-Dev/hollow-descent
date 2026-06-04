@@ -87,7 +87,7 @@ def serialize_player(player):
         "equipped":          equipped_data,
         "story_items":       [serialize_item(i) for i in player.story_items],
         "abilities":         player.abilities,
-        "oaths_sworn":       player.oaths_sworn,
+        "commitments_made":  player.commitments_made,
         "playstyle_counters":player.playstyle_counters,
     }
 
@@ -114,7 +114,7 @@ def deserialize_player(data):
     player.inventory_cap     = data["inventory_cap"]
     player.story_items       = [deserialize_item(i) for i in data["story_items"]]
     player.abilities         = data["abilities"]
-    player.oaths_sworn       = data["oaths_sworn"]
+    player.commitments_made  = data["commitments_made"]
     player.playstyle_counters= data["playstyle_counters"]
 
     # Rebuild equipped dict

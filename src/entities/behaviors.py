@@ -146,5 +146,5 @@ def take_enemy_turn(enemy, player, room, game_state):
         if player.hp <= 0:
             game_state.game_phase = "game_over"
             game_state.add_message(
-                "Darkness takes you. The Underspire claims another."
+                "Your signal collapses. The Tunnel claims another mind."
             )

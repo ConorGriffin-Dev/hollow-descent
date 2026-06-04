@@ -2,7 +2,7 @@ import random
 from world.tile import WALL, FLOOR, STAIRCASE_DOWN, STAIRCASE_UP
 from world.room import Room, Exit
 from world.floor import Floor, GateRequirement
-from entities.enemy import make_goblin, make_rat
+from entities.enemy import make_bug, make_glitch   # tier 1 fodder factories
 from entities.npc import Merchant, generate_merchant_stock
 
 # Room size bounds in tiles
@@ -245,34 +245,38 @@ def place_staircase(room, staircase_type):
 
 def generate_room_name(floor_number, rng):
     """
-    Picks a random atmospheric room name appropriate
-    to the floor depth. Deeper floors get darker names.
-    Full name lists added in Phase 3 with story content.
+    Picks a random atmospheric room name appropriate to floor depth.
+    Early floors feel like clean, deliberate architecture (Varek's build).
+    Deeper floors feel corrupted, decayed, closer to raw Cyberspace.
+    Full name lists expanded during narrative integration.
     """
+    # Early floors — the Tunnel still feels constructed and ordered
     early_names = [
-        "The Entry Hollow",
-        "The Dusty Passage",
-        "The Broken Hall",
-        "The Forgotten Chamber",
-        "The Stone Corridor",
-        "The Collapsed Gallery",
-        "The Dim Antechamber",
-        "The Crumbling Vault",
+        "The Entry Node",
+        "The Cache Hall",
+        "The Cold Junction",
+        "The Idle Sector",
+        "The Data Vestibule",
+        "The Silent Array",
+        "The Access Corridor",
+        "The Dormant Stack",
     ]
 
+    # Deep floors — structure breaking down into corrupted Cyberspace
     deep_names = [
-        "The Ashen Gallery",
-        "The Veil Chamber",
-        "The Sunken Hall",
-        "The Hollow Throne",
-        "The Shattered Keep",
-        "The Dark Vestibule",
-        "The Bone Repository",
-        "The Drowned Passage",
-        "The Pale Corridor",
-        "The Final Approach",
+        "The Fractured Array",
+        "The Bleeding Cache",
+        "The Collapsed Sector",
+        "The Dead Channel",
+        "The Severed Node",
+        "The Static Hall",
+        "The Hollow Registry",
+        "The Drowned Stack",
+        "The Null Corridor",
+        "The Last Gateway",
     ]
 
+    # Switch to corrupted naming from floor 5 onward
     names = deep_names if floor_number >= 5 else early_names
     return rng.choice(names)
 
@@ -304,10 +308,13 @@ def spawn_enemies(room, floor_number, rng):
     for i in range(min(count, len(walkable))):
         col, row = walkable[i]
 
+        # Floors 1-2 — tier 1 fodder only (bugs and glitches)
         if floor_number <= 2:
-            enemy = rng.choice([make_goblin, make_rat])(col, row, floor_number)
+            enemy = rng.choice([make_bug, make_glitch])(col, row, floor_number)
         else:
-            enemy = make_goblin(col, row, floor_number)
+            # Deeper floors default to bugs for now
+            # (tier 2+ enemy types wired in during enemy expansion)
+            enemy = make_bug(col, row, floor_number)
 
         room.enemies.append(enemy)
         
