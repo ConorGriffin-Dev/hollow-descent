@@ -1,0 +1,44 @@
+# Builds a Windows .exe of The Hollow Descent on GitHub's servers.
+# Triggered manually from the Actions tab, or on every push to master.
+
+name: Build Windows EXE
+
+on:
+  # Allows you to trigger the build manually from the Actions tab
+  workflow_dispatch:
+  # Also builds automatically on every push to master
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: windows-latest   # GitHub gives us a Windows machine
+
+    steps:
+      # Pull the repo code onto the build machine
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install Python on the build machine
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # Install dependencies plus PyInstaller
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      # Build the single-file Windows executable
+      - name: Build EXE
+        run: pyinstaller --onefile --name HollowDescent src/main.py
+
+      # Upload the finished exe so you can download it
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HollowDescent-Windows
+          path: dist/HollowDescent.exe
